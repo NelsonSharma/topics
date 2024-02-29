@@ -6,7 +6,12 @@ Flask based web app for sharing files
 
 ## setup *topics* to run on your machine
 
-clone repo and cd into it, then do as follows
+### [0] clone repo and cd into it
+
+```bash
+git clone https://github.com/NelsonSharma/topics.git
+cd topics
+```
 
 ### [1] create virtual environment
 
@@ -24,7 +29,7 @@ python -m pip install pandas openpyxl Flask Flask-WTF waitress
 ### [3] launch app using `app.py`
 
 ```bash
-python app.py 
+python app.py  # use ctrl+c to stop the server 
 ```
 
 ### [4] (optional) launch with extra arguments
