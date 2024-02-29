@@ -1,0 +1,31 @@
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title> {{ heading }} | Login </title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">           
+    </head>
+    <body>
+
+    </br>
+        <div align="center">
+            
+          <div align="center">
+             <div class="header"> <h1 class="wordH">{{ heading }}</h1>
+             </div><a href="{{ url_for('download') }}" class="btnr">Resources</a></br>
+            <h2 class="wordH"">
+                <form action="{{ url_for('login') }}" method="post">
+                  <div class="msg">{{ msg }}</div><br>
+                    <input id="roll" name="roll" type="text" placeholder="... roll ..." class="textbox"/></br></br>
+                    <input id="passwd" name="passwd" type="password" placeholder="... password ..." class="textbox"/></br></br></br>
+                    <input type="submit" class="btn" value="Login"></br></br>
+                </form>
+            </h2>
+            <div class="warn">{{ warn }}</div>
+          </div>
+        </div>
+        <br>
+        
+        <br>
+    </body>
+</html>

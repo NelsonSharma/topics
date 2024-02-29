@@ -1,0 +1,54 @@
+
+<!-- Store this code in 'index.html' file inside the 'templates' folder-->
+
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title> {{ heading }} @ {{session.rolld}} </title>
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">					 
+	</head>
+	<body></br>
+
+		<div style="padding: 20px;">
+			<div class="header">
+                <h1 class="wordH">{{ heading }}</h1>
+                <a href="{{ url_for('download') }}" class="btnr">Resources</a></br><br>
+				<div class="word">{{session.rolld}} | {{session.named}}  <a href="{{ url_for('logout') }}" class="btn">Logout</a> </div>
+			</div>
+
+            <div class="status">
+                <ol>
+                {% for f in status %}
+                <li>{{ f }}</li>
+                {% endfor %}
+                </ol>
+            </div>
+            <a href="{{ url_for('upload') }}" class="btnf">Refresh</a>
+            <br>
+            <br>
+            <h2 class="word">
+                <form method='POST' enctype='multipart/form-data'>
+                    {{form.hidden_tag()}}
+                    {{form.file()}}
+                    {{form.submit()}}
+                </form>
+            </h2>
+
+            <div class="msg"></br><span style="font-size: larger;">{{ msg }}</span></br>
+                <ol>
+                {% for f in filelist %}
+                <li>{{ f }}</li>
+                {% endfor %}
+                </ol>
+                </br>
+
+                
+            </div>
+            <br>
+            <a href="{{ url_for('purge') }}" class="btnp">Purge</a>
+            <br>
+
+		</div>
+        
+	</body>
+</html>

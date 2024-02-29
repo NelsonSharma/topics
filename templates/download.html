@@ -1,0 +1,30 @@
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title> {{ heading }} | Resources </title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">           
+    </head>
+    <body>
+
+    </br>
+        <div align="left" style="padding: 10px;">
+          <div align="left">
+             <div class="header"> <h1 class="wordH"> {{ heading }} | Resources </h1></div></br>
+             <br><a href="{{ url_for('login') }}" class="btnr">HOME</a><br>
+             <div class="download" align="left">
+                <ol>
+                {% for file,p in filelist %}
+                <li><a href="{{ (request.path + '/' if request.path != '/' else '') + file }}">
+                    {{ file }}
+                </a></li>
+                {% endfor %}
+                </ol>
+
+                
+            </div>
+
+          </div>
+        </div>
+    </body>
+</html>
