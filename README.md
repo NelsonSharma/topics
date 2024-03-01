@@ -100,7 +100,7 @@ python app.py \
 
 * *topics* is an extremely lightweight app. It does not include any security features. 
 * It uses a simple excel file to store user's login credentials. 
-* It is meant to be used in a somewhat controlled environment and should not be used in a production environment.
+* It is meant to be used in a somewhat controlled environment and should not be used in a production.
 * Any suggestions and contributions to *topics* are welcomed.
 
 ---
