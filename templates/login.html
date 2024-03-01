@@ -12,13 +12,14 @@
             
           <div align="center">
              <div class="header"> <h1 class="wordH">{{ heading }}</h1>
-             </div><a href="{{ url_for('download') }}" class="btnr">Resources</a></br>
+             <div align="center"> <a href="https://github.com/NelsonSharma/topics" class="btn_github">📤 <i>topics</i> @ GitHub 📥</a> </div>
+             <br>
             <h2 class="wordH"">
                 <form action="{{ url_for('login') }}" method="post">
                   <div class="msg">{{ msg }}</div><br>
-                    <input id="roll" name="roll" type="text" placeholder="... user|roll ..." class="textbox"/></br></br>
+                    <input id="uid" name="uid" type="text" placeholder="... user-id ..." class="textbox"/></br></br>
                     <input id="passwd" name="passwd" type="password" placeholder="... password ..." class="textbox"/></br></br></br>
-                    <input type="submit" class="btn" value="Login"></br></br>
+                    <input type="submit" class="btn_login" value="Login"></br></br>
                 </form>
             </h2>
             <div class="warn">{{ warn }}</div>
