@@ -104,20 +104,45 @@ Otherwise, the login might fail since uids are case sensitive i.e., `--case=0` b
 
 ## where are the files?
 
-* files uploaded by external users will be stored in default `__uploads__/<uid>` folder
 * files placed in the default `__downloads__` folder will be available for download (only top-level files)
-* default login file `__login__.xlsx` will be created if not present or not specified otherwise
-* users can be added or removed directly in `__login__.xlsx`
-* when adding a new user, keeping the `PASS` field blank will enable users to set a password on the first login
-* NOTE: since each user has its own directory with the same name as the uid of the user,
-* it is important to avoid illegal characters like backslash or slash in uids
-* if folder names do not support these characters, then the user's directory will not be created and they will always be auto-logged out
+* files uploaded by external users will be stored in default `__uploads__/<uid>` folder
+  * NOTE: since each user has its own directory with the same name as the uid of the user,
+  * it is important to avoid illegal characters like backslash or slash in uids
+  * if folder names do not support these characters, then the user's directory will not be created and they will always be auto-logged out
+
+---
+
+## note on login databse
+
+Login databse is an excel (.xlsx) file.
+At server start-up, login file is read once and stored into an in-memory dataframe called login-db ( the `db` variable in `app.py`)
+
+Login file contains a "login" sheet that has 4 columns -> [ `ADMIN`  `UID`  `NAME`  `PASS` ]
+
+* `UID` and `NAME`
+  * the `UID` field is the unique-id used to login
+  * only those uids that are populated in the `UID` field of the login file will be allowed to login and use the app
+  * one should pre-fill the `UID` field with known users
+  * the `NAME` field represents full name - should be pre-filed along with `UID`
+
+* `PASS`
+  * the `PASS` field contains user's password
+  * its initially kept blank - keeping it blank allows for the user to set password when the login for the first time
+  * to set new password, enter uid and the new password on the login page and click on `Login`
+  * if the new password is valid, it will be created and a message will be displayed to user confirming the same
+
+* `ADMIN`
+  * the `ADMIN` field indicates if the user is an admin or not
+  * keeping it blank would mean that the user is not an admin
+  * an admin can refresh download-list, persist and reload login-db using `<ip>:<port>/<cmd>` url
+  * a default admin user will be auto-created on the first run if the specified login file is absent
 
 ---
 
 ## how to admin?
 
 * Adding/Removing/Updating Users
+  * default login file `__login__.xlsx` will be created if not present or not specified otherwise
   * users can be added or removed directly in `__login__.xlsx`
   * however, doing so will not be reflected in the app immediately if its running already
   * this requires the in-memory login-db (which is a dataframe) to be reloaded from `__login__.xlsx`
@@ -131,13 +156,13 @@ Otherwise, the login might fail since uids are case sensitive i.e., `--case=0` b
   * however, if the server crashes before that, then the new passwords will be lost
   * the in-memory login-db must be written back to `__login__.xlsx`
   * an admin user can do so by going to the `<ip>:<port>/dbw` url (dbw for db-write)
-  * this is to avoid restarting the server to persist changes to disk and also, we would like to avoid writing to disk frequently
+  * this is to avoid restarting the server to persist changes to disk
 
 * Refreshing/Updating download list
   * files can be placed inside the `__downloads__` folder to be shared
   * when the server is started, it prepares and stores a list of files available in the `__downloads__` folder
-  * however, if new files are added to `__downloads__` folder, they will not reflect immediately if the server is running
-  * it will be required to re-scan the `__downloads__` folder and rebuild the list
+  * however, if new files are added to `__downloads__` folder, they will not reflect if the server is running already
+  * it will be required to re-scan the `__downloads__` folder and rebuild the download-list
   * an admin user can do so by going to the `<ip>:<port>/ref` url
   * this is to avoid restarting the server to update the download list
 

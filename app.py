@@ -6,40 +6,9 @@ https://github.com/NelsonSharma/topics
 Author: Nelson.S
 """
 __version__="2.3.24"
-def version(): return __version__
 if __name__!='__main__':
     from sys import exit
     exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #%% [0]
@@ -92,37 +61,6 @@ else:
 # ------------------------------------------------------------------------------------------
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #%% [1]
 # ------------------------------------------------------------------------------------------
 # WEB-SERVER INFORMATION
@@ -135,66 +73,11 @@ xprint(f'Alias: {HOST_ALIAS}\nEndpoint: {HOST_IP}:{HOST_PORT}')
 # ------------------------------------------------------------------------------------------
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #%% [2]
 """NOTE : reading login information 
     > read login info from an excel (.xlsx) file using pd.read_excel
     > `LOGIN_XL` contain excel file-name 
     > the sheet should have 4 cols -> [ ADMIN  UID  NAME  PASS ]
-    
-    > the `UID` field is the unique-id used to login
-    > only those uids that are populated in the `UID` field of the login excel file will be allowed to login and use the app
-    > one should pre-fill the `UID` field with known users
-
-    > the `NAME` field represents full name - should be prefiled along with `UID`
-
-    > the `PASS` field is the password for login
-    > its initially kept blank - keeping it blank allows for the user to set password
-    > this simulates the first-time login
-
-    > the 'ADMIN' field indicates if the user is admin or not
-    > admin can refresh downloads and persist db using 0.0.0.0:8080/x url
-    > keeping it blank would mean that the user is not an admin
-    > refreshing downloads is nessesary because simply adding files to the downloads folder will not reflect on app
-    > persisting db is nessesary because a crash may cause loss on password for new users
-    > reloading db is nessesary so that new users can be added without stopping the server
-
-
-    > NOTE - 
-        ~> at least one record must be entered so that when pandas reads this excel it knows what data-type is expected in each col
-        ~> add a dummy record in the login sheet to hint at data-types
-            specially with the `PASS` coloumn
-            otherwise pandas will interpret `PASS` coloumn as float data-type
-        ~> so a default admin user is created on the first run if login file is absent
 """
 
 # ------------------------------------------------------------------------------------------
@@ -236,36 +119,6 @@ def write_db_to_disk(db_frame):
 # ------------------------------------------------------------------------------------------
 db = read_db_from_disk()  #<----------- Created db here 
 # ------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #%% [3]  
@@ -311,7 +164,6 @@ INITIAL_UPLOAD_STATUS = []           # a list of notes to be displayed to the us
 if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\t#[{len(ALLOWED_EXTENSIONS)}] {ALLOWED_EXTENSIONS}'))
 else:                   INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\tany'))
 
-
 # find max upload size in appropiate units
 mus_kb = MAX_UPLOAD_SIZE/KB
 if len(f'{int(mus_kb)}') < 4:
@@ -327,8 +179,6 @@ else:
         else:
             mus_tb = MAX_UPLOAD_SIZE/TB
             mus_display = f'{mus_tb:.2f} TB'
-
-
 
 
 INITIAL_UPLOAD_STATUS.append((-1, f'max file-size:\t{mus_display}'))
@@ -361,36 +211,6 @@ TEMPLATE_LOGIN =    'login.html'
 TEMPLATE_UPLOAD =     'upload.html'
 TEMPLATE_DOWNLOAD = 'download.html'
 # ------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #%% [4]
@@ -453,7 +273,6 @@ def login():
                         msg = LOGIN_FAIL_TEXT
                         warn=f'[{in_uid}] New password is invalid - {INVALID_PASSWORD_WARN}'
                         heading=HEADING_TEXT
-                        
                                                
                 else: #new password not provided       
                     #xprint(f"[.....] new password was not provided")             
@@ -486,9 +305,6 @@ def login():
                         dprint(f'{session["named"]} has logged in') 
                         #xprint(f"filed @ login= {session['filed']}")
                         adc_total_login_success+=1
-
-
-                    
                         return redirect(url_for('upload'))
                     else:  
                         #xprint(f"[.....] password does not match")  
@@ -521,7 +337,6 @@ def login():
         heading = HEADING_TEXT
         warn = f'Hosted by {HOST_ALIAS}'
         
-    
     return render_template(TEMPLATE_LOGIN, msg = msg, heading = heading, warn = warn)
 # ------------------------------------------------------------------------------------------
 
@@ -624,9 +439,7 @@ def upload():
             session['filed']= session['filed'] + [file.filename]
             adc_total_files_uploaded+=1
             adc_total_files_upload_failed-=1
-            
-            
-            
+
         #---------------------------------------------------------------------------------
         
         xprint(f"upload results: \n{result}")
@@ -708,42 +521,17 @@ def reload_db():
 # ------------------------------------------------------------------------------------------
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #%% [5]
-# main --> server start
+
+# ======================================================================================================    
+# ======================================================================================================
+# server start
+# ======================================================================================================
+# ======================================================================================================
 
 octates = [ bool(int(x)) for x in HOST_IP.split('.') ]
 display_HOST_IP = HOST_IP if True in octates else "localhost"
-dprint(f'running topics version: {version()}')
+dprint(f'running topics version: {__version__}')
 dprint(f'starting server @ {HOST_IP}:{HOST_PORT} \n\thttp://{display_HOST_IP}:{HOST_PORT}\n\thttp://{display_HOST_IP}:{HOST_PORT}/ref\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbr\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbw')
 
 start_time = now()
@@ -756,8 +544,14 @@ while not write_db_to_disk(db):
     if t: 
         dprint(f'could not persist db to {LOGIN_XL_PATH}')
         break
-xprint('done! total up-time was {}'.format(stop_time-start_time))
-#-----------------------------------------------------------------------
+dprint('done! total up-time was {}'.format(stop_time-start_time))
+
+# ======================================================================================================    
+# ======================================================================================================
+# server stop
+# ======================================================================================================
+# ======================================================================================================
+
 print(f"""
 ADC stats:
 ---------------------------------------
