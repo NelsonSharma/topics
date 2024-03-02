@@ -1,6 +1,6 @@
 # 📤 . . . *topics* . . . 📥
 
-Flask based web app for sharing files
+Flask-based web app for sharing files
 
 ---
 
@@ -32,13 +32,15 @@ or use
 python -m pip install -r requirements.txt
 ```
 
-### [3] launch the app using `app.py`
+### [3] start the app
 
+start the app server by launching `app.py`
 ```bash
-python app.py  # use ctrl+c to stop the server 
+python app.py 
 ```
+use ctrl+c to stop the server 
 
-### [4] (optional) launch with extra arguments
+### [4] (optional) start with extra arguments
 
 ```cmd
 python app.py --topic="my topic" --login="my login.xlsx" --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --verbose=2
