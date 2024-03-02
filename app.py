@@ -1,11 +1,11 @@
 
+#%%
 __doc__=""" 
 topics - Flask based web app for sharing files 
 https://github.com/NelsonSharma/topics
 Author: Nelson.S
 """
 if __name__!='__main__':
-    print(f'[!] cannot import this file [!]')
     from sys import exit
     exit()
 
@@ -17,6 +17,30 @@ if __name__!='__main__':
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%% [0]
 # ------------------------------------------------------------------------------------------
 # parse arguments
 # ------------------------------------------------------------------------------------------
@@ -25,14 +49,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--topic',          type=str,       default='tOpIcS',          help='the main topic/subject')
 parser.add_argument('--login',          type=str,       default='__login__.xlsx',  help='login excel file')
 parser.add_argument('--case',           type=int,       default=0,                 help='convert uid to upper or lower case (-1 means lower-case, 1 means upper-case) (0 means as it is) ')
-parser.add_argument('--ext',            type=str,       default='',                help='csv string of allowed file extensions, keep blank to allow all')
-parser.add_argument('--maxupfiles',     type=int,       default=500,               help='maximum number of files that can be uploaded - keep zero for no limit')
-parser.add_argument('--maxupsize',      type=float,     default=10240.0,           help='maximum size (in MB) of file that can be uploaded - keep 0 for no limit')
+parser.add_argument('--ext',            type=str,       default='mp4,jpeg,pdf,exe',                help='csv string of allowed file extensions, keep blank to allow all')
+parser.add_argument('--maxupcount',     type=int,       default=4,                 help='maximum number of files that can be uploaded - keep 0 for no limit')
+parser.add_argument('--maxupsize',      type=float,     default=100,               help='maximum size (in MB) of file that can be uploaded - keep 0 for no limit')
 parser.add_argument('--port',           type=int,       default=8080,              help='port to host web server')
 parser.add_argument('--host',           type=str,       default='',                help='ip-address to host web server, leave blank to server on all IPs - same as 0.0.0.0')
 parser.add_argument('--uploads',        type=str,       default='__uploads__',     help='uploads folder')
 parser.add_argument('--downloads',      type=str,       default='__downloads__',   help='downloads folder')
-parser.add_argument('--verbose',        type=int,       default=1,                 help='verbose level 0=silent, 1=events, 2=detailed, 3 or more=detailed with timestamp')
+parser.add_argument('--verbose',        type=int,       default=2,                 help='verbose level 0=silent, 1=events, 2=detailed, 3 or more=detailed with timestamp')
 args = parser.parse_args()
 # ------------------------------------------------------------------------------------------
 # imports ----------------------------------------------------------------------------------
@@ -45,6 +69,7 @@ from wtforms import SubmitField, MultipleFileField
 from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired
 from waitress import serve
+from math import inf
 import datetime
 now = datetime.datetime.now
 # ------------------------------------------------------------------------------------------
@@ -79,6 +104,24 @@ else:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%% [1]
 # ------------------------------------------------------------------------------------------
 # WEB-SERVER INFORMATION
 # ------------------------------------------------------------------------------------------
@@ -102,6 +145,25 @@ xprint(f'Alias: {HOST_ALIAS}\nEndpoint: {HOST_IP}:{HOST_PORT}')
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%% [2]
 """NOTE : reading login information 
     > read login info from an excel (.xlsx) file using pd.read_excel
     > `LOGIN_XL` contain excel file-name 
@@ -133,7 +195,6 @@ xprint(f'Alias: {HOST_ALIAS}\nEndpoint: {HOST_IP}:{HOST_PORT}')
         ~> so a default admin user is created on the first run if login file is absent
 """
 
-
 # ------------------------------------------------------------------------------------------
 # LOGIN DATABASE - EXCEL
 # ------------------------------------------------------------------------------------------
@@ -162,8 +223,14 @@ def read_db_from_disk():
     return db_frame
 # ------------------------------------------------------------------------------------------
 def write_db_to_disk(db_frame): 
-    db_frame.to_excel(LOGIN_XL_PATH, sheet_name="login", index=False) # save updated login information to excel sheet
-    xprint(f'Persisted login file {LOGIN_XL_PATH}')
+    try:
+        db_frame.to_excel(LOGIN_XL_PATH, sheet_name="login", index=False) # save updated login information to excel sheet
+        xprint(f'Persisted login file {LOGIN_XL_PATH}')
+        return True
+    except PermissionError:
+        dprint(f'PermissionError - {LOGIN_XL_PATH} might be open, close it first.')
+        return False
+    
 # ------------------------------------------------------------------------------------------
 db = read_db_from_disk()  #<----------- Created db here 
 # ------------------------------------------------------------------------------------------
@@ -183,7 +250,24 @@ db = read_db_from_disk()  #<----------- Created db here
 
 
 
-"""NOTE: settings and meta-info """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%% [3]  
+# settings and meta-info 
 
 # ------------------------------------------------------------------------------------------
 # displayed information 
@@ -215,15 +299,20 @@ ALLOWED_EXTENSIONS = set([]) if not args.ext else set(args.ext.split(','))  # a 
 def VALIDATE_EXTENSION(filename):   # a function that checks for valid file extensions based on ALLOWED_EXTENSIONS
     if len(ALLOWED_EXTENSIONS): return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
     else: return True
+KB = 2**10
 MB = 2**20                                        # 1 MB in bytes
-MAX_UPLOAD_SIZE = int(abs(args.maxupsize*MB))         # maximum upload file size 
-MAX_UPLOAD_COUNT = int(abs(args.maxupfiles))               # maximum number of files that can be uploaded by one user
-INITIAL_UPLOAD_STATUS = [           # a list of notes to be displayed to the users about uploading files
-    f'upload files here - existing files will be overwritten',
-    f'allowed extensions are '+(f'{ALLOWED_EXTENSIONS}' if ALLOWED_EXTENSIONS else '[*]'),
-    f'maximum allowed file SIZE is {int(abs(args.maxupsize)):.2f} MB',
-    f'maximum allowed file COUNT is {MAX_UPLOAD_COUNT} file(s)',
-]
+GB = 2**30
+TB = 2**40
+MAX_UPLOAD_SIZE = abs(args.maxupsize*MB)  if args.maxupsize else TB       # maximum upload file size 
+MAX_UPLOAD_COUNT = abs(args.maxupcount) if args.maxupcount else inf        # maximum number of files that can be uploaded by one user
+INITIAL_UPLOAD_STATUS = []           # a list of notes to be displayed to the users about uploading files
+if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\t#[{len(ALLOWED_EXTENSIONS)}] {ALLOWED_EXTENSIONS}'))
+else:                   INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\tany'))
+
+
+INITIAL_UPLOAD_STATUS.append((-1, f'max file-size:\t{MAX_UPLOAD_SIZE/MB:.2f} MB | {MAX_UPLOAD_SIZE/KB:.2f} KB'))
+INITIAL_UPLOAD_STATUS.append((-1, f'max file-count:\t#[{MAX_UPLOAD_COUNT}]'))
+
 xprint(f'Upload Settings: {INITIAL_UPLOAD_STATUS}')
 # ------------------------------------------------------------------------------------------
 # download settings
@@ -248,7 +337,7 @@ class UploadFileForm(FlaskForm): # The upload form using FlaskForm
     submit = SubmitField("Upload File")
 # HTML templates
 TEMPLATE_LOGIN =    'login.html'
-TEMPLATE_USER =     'upload.html'
+TEMPLATE_UPLOAD =     'upload.html'
 TEMPLATE_DOWNLOAD = 'download.html'
 # ------------------------------------------------------------------------------------------
 
@@ -274,7 +363,17 @@ TEMPLATE_DOWNLOAD = 'download.html'
 
 
 
-"""NOTE: app.route  > all app.route implemented here """
+
+
+
+
+
+
+
+
+
+#%% [4]
+# app.route  > all app.route implemented here 
 # Analytical Data collection (ADC) variables defined as (adc_)
 
 # ------------------------------------------------------------------------------------------
@@ -286,6 +385,7 @@ adc_total_login_failed=0
 adc_total_login_create=0
 adc_total_login_unknown=0
 adc_total_hits = 0
+adc_total_force_logouts=0
 @app.route('/', methods =['GET', 'POST'])
 def login():
     r""" the login page - if a user is already logged in -> 
@@ -346,13 +446,28 @@ def login():
                     #xprint(f"[........] password provided {in_passwd}")  
                     if in_passwd==passwd:
                         #xprint(f"[......] password does match") 
+                        folder_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), app.config['UPLOAD_FOLDER'], uid) 
+                        #xprint(f"user {session['uid']} landed on upload page")
+                        try:
+                            os.makedirs(folder_name, exist_ok=True)
+                            #xprint(f"..... has directory {folder_name}")
+                        except:
+                            xprint(f'[!] Directory could not be created @ {folder_name} :: Force logout user {uid}')
+                            adc_total_force_logouts+=1
+                            return redirect(url_for('logout'))
+                    
                         session['has_login'] = True
                         session['uid'] = uid
                         session['named'] = named
                         session['admind'] = admind
+                        session['filed'] = os.listdir(folder_name)
                         xprint(f'[........] login Success {uid}|{named}')
                         dprint(f'{session["named"]} has logged in') 
+                        xprint(f"filed @ login= {session['filed']}")
                         adc_total_login_success+=1
+
+
+                    
                         return redirect(url_for('upload'))
                     else:  
                         #xprint(f"[.....] password does not match")  
@@ -403,6 +518,7 @@ def logout():
     session['uid'] = ""
     session['named'] = ""
     session['admind'] = ""
+    session['filed'] = []
     adc_total_logouts+=1
     return redirect(url_for('login'))
 # ------------------------------------------------------------------------------------------
@@ -443,78 +559,65 @@ def download(req_path):
 # ------------------------------------------------------------------------------------------
 adc_total_files_uploaded=0
 adc_total_files_upload_failed=0
-adc_total_force_logouts=0
 @app.route('/upload', methods =['GET', 'POST'])
 def upload():
     r""" homepage of users - after they login 
     - this is where the file upload is available to the users """
-    global adc_total_files_uploaded, adc_total_files_upload_failed, adc_total_force_logouts
+    global adc_total_files_uploaded, adc_total_files_upload_failed
     if not session.get('has_login', False): return redirect(url_for('login'))
     form = UploadFileForm()
     folder_name = os.path.join(
                 os.path.abspath(os.path.dirname(__file__)),
                 app.config['UPLOAD_FOLDER'],
                 session['uid']) 
-    #xprint(f"user {session['uid']} landed on upload page")
-    try:
-        os.makedirs(folder_name, exist_ok=True)
-        #xprint(f"..... has directory {folder_name}")
-    except:
-        xprint(f'[!] Directory could not be created @ {folder_name}')
-        xprint(f"[!] Force logout user {session['uid']}")
-        adc_total_force_logouts+=1
-        return redirect(url_for('logout'))
-
-    file_list = os.listdir(folder_name)
+    #xprint(f"user {session['uid']} landed on upload page")    
     #xprint(f"..... has uploaded {len(file_list)} items")
 
     if form.validate_on_submit():
         xprint(f"user {session['uid']} is trying to upload {len(form.file.data)} items.")
         result = []
-        adc_total_files_upload_failed = len(form.file.data)
+        adc_total_files_upload_failed += len(form.file.data)
+        n_success = 0
         #---------------------------------------------------------------------------------
         for file in form.file.data:
             #xprint(f"[...........] {file.filename}")
         #---------------------------------------------------------------------------------
             if not VALIDATE_EXTENSION(file.filename):
-                why_failed = f"FAILED [{file.filename}] :: Extension is invalid!"
-                result.append(why_failed)
+                why_failed = f"FAILURE :: Extension is invalid [{file.filename}] "
+                result.append((0, why_failed))
                 continue
 
             file_name = os.path.join(folder_name, secure_filename(file.filename))
-            if MAX_UPLOAD_COUNT:
-                if not os.path.exists(file_name):
-                    if len(file_list)>=MAX_UPLOAD_COUNT:
-                        why_failed = f"FAILED [{file.filename}] :: Upload limit reached!"
-                        result.append(why_failed)
-                        continue
-
-            if MAX_UPLOAD_SIZE:
-                rd = file.stream.read(MAX_UPLOAD_SIZE)
-                lrd = len(rd)
-                file.stream.seek(0)
-                if lrd >= MAX_UPLOAD_SIZE:
-                    why_failed = f"FALIED [{file.filename}] :: File is too big!"
-                    result.append(why_failed)
+            if not os.path.exists(file_name):
+                #file_list = os.listdir(folder_name)
+                if len(session['filed'])>=MAX_UPLOAD_COUNT:
+                    why_failed = f"FAILURE :: Upload limit reached [{file.filename}] "
+                    result.append((0, why_failed))
                     continue
 
 
             file.save(file_name) 
-            why_failed = f"SUCCESS [{file.filename}] :: Uploaded ({lrd/MB:.4f} MB)"
-            result.append(why_failed)
+            why_failed = f"SUCCESS :: Uploaded new file [{file.filename}] "
+            result.append((1, why_failed))
+            n_success+=1
+            session['filed']= session['filed'] + [file.filename]
             adc_total_files_uploaded+=1
             adc_total_files_upload_failed-=1
             
-            file_list = os.listdir(folder_name)
+            
+            
         #---------------------------------------------------------------------------------
-        msg = f'You have uploaded {len(file_list)} file(s)'  
-        xprint(f"upload results: \n{result}")
-        dprint(f'{session["named"]} just uploaded {len(file_list)} file(s)') 
-        return render_template(TEMPLATE_USER, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=result)
         
-
+        xprint(f"upload results: \n{result}")
+        dprint(f'{session["named"]} just uploaded {n_success} file(s)') 
+        file_list = session['filed'] #os.listdir(folder_name)
+        msg = f'You have uploaded {len(file_list)} file(s)'  
+        return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=result)
+        
+    file_list = session['filed'] #os.listdir(folder_name)
+    dprint(f"filed @ get-upload = {session['filed']}")
     msg = f'You have uploaded {len(file_list)} file(s)'  
-    return render_template(TEMPLATE_USER, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=INITIAL_UPLOAD_STATUS)
+    return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=INITIAL_UPLOAD_STATUS)
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------------------
@@ -538,6 +641,8 @@ def purge():
         for f in file_list: os.remove(os.path.join(folder_name, f))
         xprint(f"{session['uid']} has purged their files.")
         dprint(f'{session["named"]} used purge')
+        session['filed']=[]
+        dprint(f"filed @ purge= {session['filed']}")
         adc_total_purged+=1
         adc_total_files_purged+=len(file_list)
     return redirect(url_for('upload'))
@@ -547,6 +652,7 @@ def purge():
 # ------------------------------------------------------------------------------------------
 # administrative
 # ------------------------------------------------------------------------------------------
+FAILED_ADMIN_MSG = "[FAILURE] :: This action requires admin privilege"
 @app.route('/ref', methods =['GET']) 
 def refresh_dll():
     r""" refreshes the  DOWNLOAD_FILE_LIST"""
@@ -555,18 +661,19 @@ def refresh_dll():
     if not pd.isnull(session['admind']): 
         DOWNLOAD_FILE_LIST = GET_DOWNLOAD_FILE_LIST()
         dprint(f"[@] {session['uid']} just refreshed the download list.")
-        return "Success - download list refreshed"
-    else: return "Not Allowed - Requires an admin"
+        return "[SUCCESS] :: download-list was refreshed"
+    else: return FAILED_ADMIN_MSG
 @app.route('/dbw', methods =['GET']) 
 def persist_db():
     r""" writes db to disk """
     global db, write_db_to_disk
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
     if not pd.isnull(session['admind']): 
-        write_db_to_disk(db)
-        dprint(f"[@] {session['uid']} just persisted the db to disk.")
-        return "Success - db written to disk"
-    else: return "Not Allowed - Requires an admin"
+        if write_db_to_disk(db):
+            dprint(f"[@] {session['uid']} just persisted the db to disk.")
+            return "[SUCCESS] :: db written to disk"
+        else: return f"[ERROR] :: {LOGIN_XL} might be open, close it first."
+    else: return FAILED_ADMIN_MSG
 @app.route('/dbr', methods =['GET']) # rdb for reload db
 def reload_db():
     r""" reloads db from disk """
@@ -575,8 +682,8 @@ def reload_db():
     if not pd.isnull(session['admind']): 
         db = read_db_from_disk()
         dprint(f"[@] {session['uid']} just reloaded the db from disk.")
-        return "Success - db reloaded"
-    else: return "Not Allowed - Requires an admin"
+        return "[SUCCESS] :: db reloaded from disk"
+    else: return FAILED_ADMIN_MSG
 # ------------------------------------------------------------------------------------------
 
 
@@ -605,18 +712,30 @@ def reload_db():
 
 
 
-# if __name__ == "__main__": #<---- no need to check here
+
+
+
+
+
+#%% [5]
+# main --> server start
+
 octates = [ bool(int(x)) for x in HOST_IP.split('.') ]
 display_HOST_IP = HOST_IP if True in octates else "localhost"
 dprint(f'starting server @ {HOST_IP}:{HOST_PORT} \n\thttp://{display_HOST_IP}:{HOST_PORT}\n\thttp://{display_HOST_IP}:{HOST_PORT}/ref\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbr\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbw')
 
 start_time = now()
-serve(app, host=HOST_IP, port=HOST_PORT) # start serving app at this ip --> to stop app - use ctrl+c
+serve(app, host=HOST_IP, port=HOST_PORT, max_request_body_size=MAX_UPLOAD_SIZE) 
+# start serving app at this ip --> to stop app - use ctrl+c
 stop_time = now()
 dprint(f'stopping server...')
-write_db_to_disk(db)
+while not write_db_to_disk(db):
+    t = input('Press Enter to try again')
+    if t: 
+        dprint(f'could not persist db to {LOGIN_XL_PATH}')
+        break
 xprint('done! total up-time was {}'.format(stop_time-start_time))
-
+#-----------------------------------------------------------------------
 print(f"""
 ADC stats:
 ---------------------------------------
@@ -652,37 +771,7 @@ Purges
 ---------------------------------------
 """)
 # ------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ------------------------------------------------------------------------------------------
-""" ARCHIVE 
-
-"""
+#%% [6]
 # ------------------------------------------------------------------------------------------
 """ FOOTNOTE 
 

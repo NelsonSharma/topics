@@ -46,7 +46,7 @@ python app.py \
 --login=mylogin.xlsx \
 --case=0 \
 --ext="txt,jpeg,jpeg,mp4,zip" \
---maxupfiles=10 \
+--maxupcount=10 \
 --maxupsize=256 \
 --port=8080 \
 --host=127.0.0.1\
@@ -71,28 +71,28 @@ python app.py \
 ## how to admin?
 
 * Adding/Removing/Updating Users
-    * users can be added or removed directly in `__login__.xlsx`
-    * however, doing so will not be reflected in the app immediately if its running already
-    * this requires the in-memory login-db (which is a dataframe) to be reloaded from `__login__.xlsx`
-    * an admin user can do so by going to the `<ip>:<port>/dbr` url (dbr for db-read)
-    * this is to avoid restarting the server to update the login-db
+  * users can be added or removed directly in `__login__.xlsx`
+  * however, doing so will not be reflected in the app immediately if its running already
+  * this requires the in-memory login-db (which is a dataframe) to be reloaded from `__login__.xlsx`
+  * an admin user can do so by going to the `<ip>:<port>/dbr` url (dbr for db-read)
+  * this is to avoid restarting the server to update the login-db
 
 * Persisting login-database to disk manually
-    * users that login first time will create new passwords
-    * these passwords are again, stored in the in-memory login-db (which is a dataframe)
-    * the changes will be persisted to disk when the server is stopped (using ctrl+c)
-    * however, if the server crashes before that, then the new passwords will be lost
-    * the in-memory login-db must be written back to `__login__.xlsx`
-    * an admin user can do so by going to the `<ip>:<port>/dbw` url (dbw for db-write)
-    * this is to avoid restarting the server to persist changes to disk and also, we would like to avoid writing to disk frequently
+  * users that login first time will create new passwords
+  * these passwords are again, stored in the in-memory login-db (which is a dataframe)
+  * the changes will be persisted to disk when the server is stopped (using ctrl+c)
+  * however, if the server crashes before that, then the new passwords will be lost
+  * the in-memory login-db must be written back to `__login__.xlsx`
+  * an admin user can do so by going to the `<ip>:<port>/dbw` url (dbw for db-write)
+  * this is to avoid restarting the server to persist changes to disk and also, we would like to avoid writing to disk frequently
 
 * Refreshing/Updating download list
-    * files can be placed inside the `__downloads__` folder to be shared
-    * when the server is started, it prepares and stores a list of files available in the `__downloads__` folder
-    * however if new files are added to `__downloads__` folder, they will not reflect immediately if the server is running
-    * it will be required to re-scan the `__downloads__` folder and rebuild the list
-    * an admin user can do so by going to the `<ip>:<port>/ref` url
-    * this is to avoid restarting the server to update the download list
+  * files can be placed inside the `__downloads__` folder to be shared
+  * when the server is started, it prepares and stores a list of files available in the `__downloads__` folder
+  * however if new files are added to `__downloads__` folder, they will not reflect immediately if the server is running
+  * it will be required to re-scan the `__downloads__` folder and rebuild the list
+  * an admin user can do so by going to the `<ip>:<port>/ref` url
+  * this is to avoid restarting the server to update the download list
 
 ---
 
@@ -105,7 +105,7 @@ python app.py \
 
 ---
 
-Author: Nelson.S (mail.nelsonsharma@gmail.com)
+Author: Nelson.S (```mail.nelsonsharma@gmail.com```)
 
 ---
 
