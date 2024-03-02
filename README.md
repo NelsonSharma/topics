@@ -1,6 +1,6 @@
 # 📤 . . . *topics* . . . 📥
 
-Flask based web app for sharing files
+Flask-based web app for sharing files
 
 ---
 
@@ -32,13 +32,17 @@ or use
 python -m pip install -r requirements.txt
 ```
 
-### [3] launch the app using `app.py`
+### [3] start the app
+
+start the app server by launching `app.py`
 
 ```bash
-python app.py  # use ctrl+c to stop the server 
+python app.py 
 ```
 
-### [4] (optional) launch with extra arguments
+use ctrl+c to stop the server
+
+### [4] (optional) start with extra arguments
 
 ```cmd
 python app.py --topic="my topic" --login="my login.xlsx" --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --verbose=2
@@ -106,8 +110,7 @@ Otherwise, the login might fail since uids are case sensitive i.e., `--case=0` b
 
 * files placed in the default `__downloads__` folder will be available for download (only top-level files)
 * files uploaded by external users will be stored in default `__uploads__/<uid>` folder
-  * NOTE: since each user has its own directory with the same name as the uid of the user,
-  * it is important to avoid illegal characters like backslash or slash in uids
+  * NOTE: since each user has its own directory with the same name as the uid of the user it is important to avoid illegal characters like backslash or slash in uids
   * if folder names do not support these characters, then the user's directory will not be created and they will always be auto-logged out
 
 ---

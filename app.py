@@ -1,7 +1,7 @@
 
 #%%
 __doc__=""" 
-topics - Flask based web app for sharing files 
+topics - Flask-based web app for sharing files 
 https://github.com/NelsonSharma/topics
 Author: Nelson.S
 """
