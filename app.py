@@ -5,6 +5,8 @@ topics - Flask based web app for sharing files
 https://github.com/NelsonSharma/topics
 Author: Nelson.S
 """
+__version__="2.3.24"
+def version(): return __version__
 if __name__!='__main__':
     from sys import exit
     exit()
@@ -310,8 +312,27 @@ if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\
 else:                   INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\tany'))
 
 
-INITIAL_UPLOAD_STATUS.append((-1, f'max file-size:\t{MAX_UPLOAD_SIZE/MB:.2f} MB | {MAX_UPLOAD_SIZE/KB:.2f} KB'))
-INITIAL_UPLOAD_STATUS.append((-1, f'max file-count:\t#[{MAX_UPLOAD_COUNT}]'))
+# find max upload size in appropiate units
+mus_kb = MAX_UPLOAD_SIZE/KB
+if len(f'{int(mus_kb)}') < 4:
+    mus_display = f'{mus_kb:.2f} KB'
+else:
+    mus_mb = MAX_UPLOAD_SIZE/MB
+    if len(f'{int(mus_mb)}') < 4:
+        mus_display = f'{mus_mb:.2f} MB'
+    else:
+        mus_gb = MAX_UPLOAD_SIZE/GB
+        if len(f'{int(mus_gb)}') < 4:
+            mus_display = f'{mus_gb:.2f} GB'
+        else:
+            mus_tb = MAX_UPLOAD_SIZE/TB
+            mus_display = f'{mus_tb:.2f} TB'
+
+
+
+
+INITIAL_UPLOAD_STATUS.append((-1, f'max file-size:\t{mus_display}'))
+INITIAL_UPLOAD_STATUS.append((-1, f'max file-count:\t{MAX_UPLOAD_COUNT}'))
 
 xprint(f'Upload Settings: {INITIAL_UPLOAD_STATUS}')
 # ------------------------------------------------------------------------------------------
@@ -463,7 +484,7 @@ def login():
                         session['filed'] = os.listdir(folder_name)
                         xprint(f'[........] login Success {uid}|{named}')
                         dprint(f'{session["named"]} has logged in') 
-                        xprint(f"filed @ login= {session['filed']}")
+                        #xprint(f"filed @ login= {session['filed']}")
                         adc_total_login_success+=1
 
 
@@ -615,7 +636,7 @@ def upload():
         return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=result)
         
     file_list = session['filed'] #os.listdir(folder_name)
-    dprint(f"filed @ get-upload = {session['filed']}")
+    #dprint(f"filed @ get-upload = {session['filed']}")
     msg = f'You have uploaded {len(file_list)} file(s)'  
     return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=INITIAL_UPLOAD_STATUS)
 # ------------------------------------------------------------------------------------------
@@ -642,7 +663,7 @@ def purge():
         xprint(f"{session['uid']} has purged their files.")
         dprint(f'{session["named"]} used purge')
         session['filed']=[]
-        dprint(f"filed @ purge= {session['filed']}")
+        #dprint(f"filed @ purge= {session['filed']}")
         adc_total_purged+=1
         adc_total_files_purged+=len(file_list)
     return redirect(url_for('upload'))
@@ -722,6 +743,7 @@ def reload_db():
 
 octates = [ bool(int(x)) for x in HOST_IP.split('.') ]
 display_HOST_IP = HOST_IP if True in octates else "localhost"
+dprint(f'running topics version: {version()}')
 dprint(f'starting server @ {HOST_IP}:{HOST_PORT} \n\thttp://{display_HOST_IP}:{HOST_PORT}\n\thttp://{display_HOST_IP}:{HOST_PORT}/ref\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbr\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbw')
 
 start_time = now()

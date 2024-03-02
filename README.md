@@ -13,7 +13,7 @@ git clone https://github.com/NelsonSharma/topics.git
 cd topics
 ```
 
-### [1] create virtual environment
+### [1] create a virtual environment
 
 ```bash
 python -m venv .venv
@@ -32,39 +32,86 @@ or use
 python -m pip install -r requirements.txt
 ```
 
-### [3] launch app using `app.py`
+### [3] launch the app using `app.py`
 
 ```bash
-python app.py  # use ctrl+c to stop the server 
+python app.py  # use ctrl+c to stop the server 
 ```
 
 ### [4] (optional) launch with extra arguments
 
-```bash
-python app.py \
---topic="my topic" \
---login=mylogin.xlsx \
---case=0 \
---ext="txt,jpeg,jpeg,mp4,zip" \
---maxupcount=10 \
---maxupsize=256 \
---port=8080 \
---host=127.0.0.1\
---verbose=0
+```cmd
+python app.py --topic="my topic" --login="my login.xlsx" --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --verbose=2
 ```
+
+Description of Arguments
+
+```python
+
+--topic         
+# name of the topic - this is displayed as the main heading at the top of all pages
+
+--login         
+# name of login database file - an Excel file which must be stored in the current dir (will auto-create if not found)
+# default is "__login__.xlsx"
+
+--case          
+# convert uid to upper or lower case ([-1] means lower-case, [1] means upper-case, [0] means as it is) 
+# default is [0] which means no convert
+
+--ext           
+# allowed file extensions that can be uploaded (expects a CSV-string)
+# default is empty-string which means any file is allowed
+
+--maxupcount    
+# max no. of files that a user can upload
+# default is [0] which means no-limit
+
+--maxupsize     
+# max file-size (in MB) that can be uploaded (actually represent the `max_request_body_size` argument in `waitress.serve`)
+# default is [0] which means 1 TB
+
+--port          
+# port of server ip-endpoint 
+# default is 8080
+
+--host          
+# address of server ip-endpoint 
+# default is empty-string which means use all interfaces
+
+--uploads       
+# name of folder used to store uploaded files
+# default is "__uploads__"
+
+--downloads     
+# name of the folder used to serve files as resources
+# default is "__downloads__"
+
+--verbose       
+# verbose level (0=silent), (1=events), (2=detailed), (>2=detailed with timestamp)
+# default is [1]
+
+```
+
+Note: the `--case` argument is to convert the uid entered by users to either upper-case or lower-case.
+
+For example, if uids are case insensitive but are stored in upper-case in the login database,
+then specifying `--case=1` will allow the uid entered by the user to be converted to upper-case before
+querying to the login database. This way users don't necessarily have to capitalize their uid at the time of login.
+Otherwise, the login might fail since uids are case sensitive i.e., `--case=0` by default.
 
 ---
 
 ## where are the files?
 
 * files uploaded by external users will be stored in default `__uploads__/<uid>` folder
-* files placed in default `__downloads__` folder will be available for download (only top-level files)
+* files placed in the default `__downloads__` folder will be available for download (only top-level files)
 * default login file `__login__.xlsx` will be created if not present or not specified otherwise
 * users can be added or removed directly in `__login__.xlsx`
-* when adding new user, keeping the `PASS` field blank will enable users to set a password on the first login
+* when adding a new user, keeping the `PASS` field blank will enable users to set a password on the first login
 * NOTE: since each user has its own directory with the same name as the uid of the user,
-* it is important avoid illegal characters like backslash or slash in uids
-* if folder-names do not support these characters, then user's directory will not be created and they will always be auto-logged out
+* it is important to avoid illegal characters like backslash or slash in uids
+* if folder names do not support these characters, then the user's directory will not be created and they will always be auto-logged out
 
 ---
 
@@ -89,23 +136,15 @@ python app.py \
 * Refreshing/Updating download list
   * files can be placed inside the `__downloads__` folder to be shared
   * when the server is started, it prepares and stores a list of files available in the `__downloads__` folder
-  * however if new files are added to `__downloads__` folder, they will not reflect immediately if the server is running
+  * however, if new files are added to `__downloads__` folder, they will not reflect immediately if the server is running
   * it will be required to re-scan the `__downloads__` folder and rebuild the list
   * an admin user can do so by going to the `<ip>:<port>/ref` url
   * this is to avoid restarting the server to update the download list
 
 ---
 
-## Note from author
-
-* *topics* is an extremely lightweight app. It does not include any security features. 
-* It uses a simple excel file to store user's login credentials. 
-* It is meant to be used in a somewhat controlled environment and should not be used in production.
-* Any suggestions and contributions to *topics* are welcomed.
+> *topics* verision: 2.3.24
+>
+> author: `mail.nelsonsharma@gmail.com`
 
 ---
-
-Author: Nelson.S (```mail.nelsonsharma@gmail.com```)
-
----
-
