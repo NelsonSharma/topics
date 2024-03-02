@@ -56,11 +56,12 @@ Description of Arguments
 # name of the topic - this is displayed as the main heading at the top of all pages
 
 --login         
-# name of login database file - an Excel file which must be stored in the current dir (will auto-create if not found)
-# default is "__login__.xlsx"
+# name of login database file - an Excel file stored in the current dir 
+# default is "__login__.xlsx" (will auto-create if not found)
 
 --case          
-# convert uid to upper or lower case ([-1] means lower-case, [1] means upper-case, [0] means as it is) 
+# convert uid to upper or lower case 
+# [-1] means lower-case, [1] means upper-case, [0] means no convert
 # default is [0] which means no convert
 
 --ext           
@@ -72,7 +73,8 @@ Description of Arguments
 # default is [0] which means no-limit
 
 --maxupsize     
-# max file-size (in MB) that can be uploaded (actually represent the `max_request_body_size` argument in `waitress.serve`)
+# max file-size (in MB) that can be uploaded 
+# (actually represent the `max_request_body_size` argument in `waitress.serve`)
 # default is [0] which means 1 TB
 
 --port          
@@ -92,7 +94,8 @@ Description of Arguments
 # default is "__downloads__"
 
 --verbose       
-# verbose level (0=silent), (1=events), (2=detailed), (>2=detailed with timestamp)
+# verbose level 
+# (0=silent), (1=events), (2=detailed), (>2=detailed with timestamp)
 # default is [1]
 
 ```
