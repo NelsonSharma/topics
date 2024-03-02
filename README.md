@@ -33,15 +33,23 @@ python -m pip install -r requirements.txt
 ```
 
 ### [3] start the app
+<<<<<<< HEAD
 
 start the app server by launching `app.py`
+=======
+>>>>>>> 5acbfe0b0fdfda1e5b466fdd70aac4e16f52e093
 
+start the app server by launching `app.py`
 ```bash
 python app.py 
 ```
+use ctrl+c to stop the server 
 
+<<<<<<< HEAD
 use ctrl+c to stop the server
 
+=======
+>>>>>>> 5acbfe0b0fdfda1e5b466fdd70aac4e16f52e093
 ### [4] (optional) start with extra arguments
 
 ```cmd
