@@ -22,7 +22,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--secret',         type=str,       default='',                help='the app secret key - this is nessesary and constant through application lifecycle - helps manage sessions')
 parser.add_argument('--topic',          type=str,       default='tOpIcS',          help='the main topic/subject')
-parser.add_argument('--welcome',        type=str,       default='Welcome!',         help='welcome text on login page')
+parser.add_argument('--welcome',        type=str,       default='Welcome!',        help='welcome text on login page')
 parser.add_argument('--login',          type=str,       default='__login__.xlsx',  help='login excel file')
 parser.add_argument('--case',           type=int,       default=0,                 help='convert uid to upper or lower case (-1 means lower-case, 1 means upper-case) (0 means as it is) ')
 parser.add_argument('--ext',            type=str,       default='',                help='csv string of allowed file extensions, keep blank to allow all')
@@ -574,8 +574,8 @@ def adminpage():
 octates = [ bool(int(x)) for x in HOST_IP.split('.') ]
 display_HOST_IP = HOST_IP if True in octates else "localhost"
 dprint(f'running topics version: {__version__}')
-dprint(f'starting server @ {HOST_IP}:{HOST_PORT} \n\thttp://{display_HOST_IP}:{HOST_PORT}\n\thttp://{display_HOST_IP}:{HOST_PORT}/ref\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbr\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbw')
-
+dprint(f'starting server @ {HOST_IP}:{HOST_PORT} visit http://{display_HOST_IP}:{HOST_PORT}')
+#dprint(f'starting server @ {HOST_IP}:{HOST_PORT} \n\thttp://{display_HOST_IP}:{HOST_PORT}\n\thttp://{display_HOST_IP}:{HOST_PORT}/ref\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbr\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbw')
 start_time = now()
 serve(app, host=HOST_IP, port=HOST_PORT, max_request_body_size=MAX_UPLOAD_SIZE) 
 # start serving app at this ip --> to stop app - use ctrl+c
