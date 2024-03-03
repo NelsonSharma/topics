@@ -20,7 +20,7 @@
         <button class="btn_purge" onclick="confirm_purge()">Purge</button>
             <script>
                 function confirm_purge() {
-                let res = confirm("Purge all uploaded files now?");
+                let res = confirm("Purge all the uploaded files now?");
                 if (res == true) {
                     location.href = "{{ url_for('purge') }}";
                     }
