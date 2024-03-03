@@ -1,3 +1,6 @@
+#%%
+
+# topics app 
 
 #%%
 __doc__=""" 
@@ -67,11 +70,27 @@ else:
 # ------------------------------------------------------------------------------------------
 # WEB-SERVER INFORMATION
 # ------------------------------------------------------------------------------------------
-
-APP_SECRET_KEY =    args.secret.encode('utf8') if args.secret else f'{os.getlogin()}@{platform.node()}'.encode('utf8')
+AUTO_SECRET= f'[' + \
+        f'{os.getlogin()}' + \
+        f'{platform.node()}' + \
+        f'{platform.machine()}' + \
+        f'{platform.architecture()}' + \
+        f'{platform.release()}' + \
+        f'{platform.system()}' + \
+        f'{platform.version()}' + \
+        f'{platform.python_compiler()}' + \
+        f'{platform.python_version()}' + \
+        f'{platform.python_branch()}' + \
+        f']'
+        
+        
+APP_SECRET_KEY =    (args.secret if args.secret else AUTO_SECRET).encode('utf8')
 HOST_IP =           args.host if args.host else '0.0.0.0'           # use "0.0.0.0" to listen on all interfaces
 HOST_PORT =         args.port                                       # use 8080 by default
 
+SERVER_INFO=     f'{os.getlogin()}@{platform.node()}' 
+
+xprint(f'Server: {SERVER_INFO}')
 xprint(f'Endpoint: {HOST_IP}:{HOST_PORT}')
 # ------------------------------------------------------------------------------------------
 
@@ -339,7 +358,7 @@ def login():
         msg = WELCOME_TEXT
         warn = LOGIN_NEED_TEXT 
         
-    return render_template(TEMPLATE_LOGIN, msg = msg, heading = HEADING_TEXT, warn = warn)
+    return render_template(TEMPLATE_LOGIN, msg = msg, heading = HEADING_TEXT, warn = warn, info=SERVER_INFO)
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------------------

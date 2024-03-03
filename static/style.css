@@ -32,12 +32,11 @@
 @keyframes fader_msg {from {color: #ffffff;} to {color: #060472; } }
 
 .info_login{
-    color: #02703f;
-    font-size: large;
+    color: #3d3d3d; 
+    font-size: smaller;
     font-weight: bold;
+    font-style: oblique;
     font-family:monospace;    
-    animation-duration: 3s; 
-    animation-name: fadertxt;
 }
 
 .txt_login{
