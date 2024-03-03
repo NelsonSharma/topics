@@ -26,6 +26,9 @@
                     }
                 }
             </script>
+        {% if not not_admin %}
+        <a href="{{ url_for('adminpage') }}" class="btn_admin">⚙</a>
+        {% endif %}
         <br>
         <br>
         <div class="status">

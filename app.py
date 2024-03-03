@@ -212,8 +212,9 @@ class UploadFileForm(FlaskForm): # The upload form using FlaskForm
     submit = SubmitField("Upload File")
 # HTML templates
 TEMPLATE_LOGIN =    'login.html'
-TEMPLATE_UPLOAD =     'upload.html'
+TEMPLATE_UPLOAD =   'upload.html'
 TEMPLATE_DOWNLOAD = 'download.html'
+TEMPLATE_ADMIN =    'admin.html'
 # ------------------------------------------------------------------------------------------
 
 
@@ -448,12 +449,12 @@ def upload():
         dprint(f'{session["named"]} just uploaded {n_success} file(s)') 
         file_list = session['filed'] #os.listdir(folder_name)
         msg = f'You have uploaded {len(file_list)} file(s)'  
-        return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=result)
+        return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=result, not_admin = pd.isnull(session['admind']))
         
     file_list = session['filed'] #os.listdir(folder_name)
     #dprint(f"filed @ get-upload = {session['filed']}")
     msg = f'You have uploaded {len(file_list)} file(s)'  
-    return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=INITIAL_UPLOAD_STATUS)
+    return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=INITIAL_UPLOAD_STATUS, not_admin = pd.isnull(session['admind']))
 # ------------------------------------------------------------------------------------------
 
 @app.route('/uploadf', methods =['GET'])
@@ -534,6 +535,13 @@ def reload_db():
         return "[SUCCESS] :: db reloaded from disk"
     else: return FAILED_ADMIN_MSG
 # ------------------------------------------------------------------------------------------
+@app.route('/admin', methods =['GET'])
+def adminpage():
+    r""" opens admin page """
+    if not session.get('has_login', False): return redirect(url_for('login'))
+    if not pd.isnull(session['admind']): 
+        return  render_template(TEMPLATE_ADMIN, heading=HEADING_TEXT)
+    else: return redirect(url_for('upload')) 
 
 
 #%% [5]

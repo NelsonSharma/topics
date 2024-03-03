@@ -149,7 +149,7 @@ Login file contains a "login" sheet that has 4 columns -> [ `ADMIN`  `UID`  `NAM
 * `ADMIN`
   * the `ADMIN` field indicates if the user is an admin or not
   * keeping it blank would mean that the user is not an admin
-  * an admin can refresh download-list, persist and reload login-db using `<ip>:<port>/<cmd>` url
+  * an admin can refresh downloads-list, persist and reload login-db using `<ip>:<port>/<cmd>` url
   * a default admin user will be auto-created on the first run if the specified login file is absent
 
 ---
@@ -173,13 +173,13 @@ Login file contains a "login" sheet that has 4 columns -> [ `ADMIN`  `UID`  `NAM
   * an admin user can do so by going to the `<ip>:<port>/dbw` url (dbw for db-write)
   * this is to avoid restarting the server to persist changes to disk
 
-* Refreshing/Updating download list
+* Refreshing/Updating downloads-list
   * files can be placed inside the `__downloads__` folder to be shared
   * when the server is started, it prepares and stores a list of files available in the `__downloads__` folder
   * however, if new files are added to `__downloads__` folder, they will not reflect if the server is running already
-  * it will be required to re-scan the `__downloads__` folder and rebuild the download-list
+  * it will be required to re-scan the `__downloads__` folder and rebuild the downloads-list
   * an admin user can do so by going to the `<ip>:<port>/ref` url
-  * this is to avoid restarting the server to update the download list
+  * this is to avoid restarting the server to update the downloads-list
 
 ---
 
