@@ -2,31 +2,39 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title> {{ heading }} | Login </title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">           
+        <title> 🔒 {{ heading }} </title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">  
     </head>
     <body>
-
+    <!-- ---------------------------------------------------------->
     </br>
-        <div align="center">
-            
-          <div align="center">
-             <div class="header"> <h1 class="wordH">{{ heading }}</h1>
-             <div align="center"> <a href="https://github.com/NelsonSharma/topics" class="btn_github">📤 <i>topics</i> @ GitHub 📥</a> </div>
-             <br>
-            <h2 class="wordH"">
-                <form action="{{ url_for('login') }}" method="post">
-                  <div class="msg">{{ msg }}</div><br>
-                    <input id="uid" name="uid" type="text" placeholder="... user-id ..." class="textbox"/></br></br>
-                    <input id="passwd" name="passwd" type="password" placeholder="... password ..." class="textbox"/></br></br></br>
-                    <input type="submit" class="btn_login" value="Login"></br></br>
-                </form>
-            </h2>
-            <div class="warn">{{ warn }}</div>
-          </div>
-        </div>
+    <!-- ---------------------------------------------------------->
+
+    <div align="center">
+        <div style="font-size:xx-large">📤<a href="https://github.com/NelsonSharma/topics" class="github_info"><i>topics</i> ● GitHub</a>📥</div>
+        <br><br>
+        <div class="topic">{{ heading }}</div>
         <br>
-        
-        <br>
+        <form action="{{ url_for('login') }}" method="post">
+            <br>
+            <div style="font-size: x-large;">{{ warn }}</div>
+            <br>
+            <div class="msg_login">{{ msg }}</div>
+            <br>
+            <input id="uid" name="uid" type="text" placeholder="... user-id ..." class="txt_login"/>
+            <br>
+            <br>
+            <input id="passwd" name="passwd" type="password" placeholder="... password ..." class="txt_login"/>
+            <br>
+            <br>
+            <input type="submit" class="btn_login" value="Login">
+            <br>
+            <br>
+        </form>
+    </div>
+
+    <!-- ---------------------------------------------------------->
+    </br>
+    <!-- ---------------------------------------------------------->
     </body>
 </html>

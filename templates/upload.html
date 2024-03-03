@@ -2,64 +2,70 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title> {{ heading }} @ {{session.uid}} </title>
+		<title> 🔺 {{ heading }} | {{ session.uid }} </title>
 		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">					 
 	</head>
-	<body></br>
-
-		<div style="padding: 20px;">
-			<div class="header">
-                <h1 class="wordH">{{ heading }}</h1>
-                <a href="{{ url_for('download') }}" class="btn_resources">Resources</a></br><br>
-				<div class="word">{{session.uid}} | {{session.named}}  <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a> </div>
-			</div>
-            {% if username == "": %}
-            <!--if block html code-->
+    <body>
+    <!-- ---------------------------------------------------------->
+    </br>
+    <!-- ---------------------------------------------------------->
+    
+    <div align="left" style="padding: 20px;">
+        <div class="topic_mid">{{ heading }}</div>
+        <div class="userword">{{session.uid}}◦{{session.named}}</div>
+        <br>
+        <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
+        <a href="{{ url_for('download') }}" class="btn_download">Downloads</a>
+        <a href="{{ url_for('uploadf') }}" class="btn_refresh">Refresh</a>
+        <button class="btn_purge" onclick="confirm_purge()">Purge</button>
+            <script>
+                function confirm_purge() {
+                let res = confirm("Purge all uploaded files now?");
+                if (res == true) {
+                    location.href = "{{ url_for('purge') }}";
+                    }
+                }
+            </script>
+        <br>
+        <br>
+        <div class="status">
+            <ol>
+            {% for s,f in status %}
+            {% if s %}
+            {% if s<0 %}
+            <li style="color: #ffffff;">{{ f }}</li>
             {% else %}
-            <!--else block html code-->
+            <li style="color: #47ff6f;">{{ f }}</li>
             {% endif %}
+            {% else %}
+            <li style="color: #ff6565;">{{ f }}</li>
+            {% endif %}
+            {% endfor %}
+            </ol>
+        </div>
+        <br>
+        <form method='POST' enctype='multipart/form-data'>
+            {{form.hidden_tag()}}
+            {{form.file()}}
+            {{form.submit()}}
+        </form>
+        <br>
+        <div class="files_status">{{ msg }}</div>
+        <br>
+        <div class="files_list">
+            <ol>
+            {% for f in filelist %}
+            <li>{{ f }}</li>
+            {% endfor %}
+            </ol>
+        </div>
+        <br>
+        <br>
 
-            <div class="status">
-                <ol>
-                {% for s,f in status %}
-                {% if s %}
-                {% if s<0 %}
-                <li style="color: #060472;">{{ f }}</li>
-                {% else %}
-                <li style="color: #089a28;">{{ f }}</li>
-                {% endif %}
-                {% else %}
-                <li style="color: #9a0808;">{{ f }}</li>
-                {% endif %}
-                {% endfor %}
-                </ol>
-            </div>
-            <a href="{{ url_for('upload') }}" class="btn_refresh">Clear</a>
-            <br>
-            <br>
-            <h2 class="word">
-                <form method='POST' enctype='multipart/form-data'>
-                    {{form.hidden_tag()}}
-                    {{form.file()}}
-                    {{form.submit()}}
-                </form>
-            </h2>
-
-            <div class="msg"></br><span style="font-size: larger;">{{ msg }}</span></br>
-                <ol>
-                {% for f in filelist %}
-                <li>{{ f }}</li>
-                {% endfor %}
-                </ol>
-                </br>
-
-                
-            </div>
-            <br>
-            <a href="{{ url_for('purge') }}" class="btn_purge">Purge</a>
-            <br>
-
-		</div>
-        
-	</body>
+    </div>
+			
+    <!-- ---------------------------------------------------------->
+    </br>
+    <!-- ---------------------------------------------------------->
+    </body>
 </html>

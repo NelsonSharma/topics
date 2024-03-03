@@ -2,29 +2,36 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title> {{ heading }} | Resources </title>
+        <title> 🔻 {{ heading }} | {{ session.uid }} </title>
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">           
     </head>
     <body>
-
+    <!-- ---------------------------------------------------------->
     </br>
-        <div align="left" style="padding: 10px;">
-          <div align="left">
-             <div class="header"> <h1 class="wordH"> {{ heading }} | Resources </h1></div></br>
-             <br><a href="{{ url_for('upload') }}" class="btn_resources">HOME</a><br>
-             <div class="download" align="left">
-                <ol>
-                {% for file,p in filelist %}
-                <li><a href="{{ (request.path + '/' if request.path != '/' else '') + file }}">
-                    {{ file }}
-                </a></li>
-                {% endfor %}
-                </ol>
-
-                
-            </div>
-
-          </div>
+    <!-- ---------------------------------------------------------->
+    
+    <div align="left" style="padding: 20px;">
+        <div class="topic_mid">{{ heading }}</div>
+        <div class="userword">{{session.uid}}◦{{session.named}}</div>
+        <br>
+        <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
+        <a href="{{ url_for('upload') }}" class="btn_download">Back</a>
+        <br>
+        <br>
+        <div class="download">
+            <ol>
+            {% for file,p in filelist %}
+            <li><a href="{{ (request.path + '/' if request.path != '/' else '') + file }}" style="text-decoration: none; color: rgb(20, 20, 20);" >{{ file }}</a></li>
+            <br>
+            {% endfor %}
+            </ol>
         </div>
+        <br>
+        <br>
+    </div>
+
+    <!-- ---------------------------------------------------------->
+    </br>
+    <!-- ---------------------------------------------------------->
     </body>
 </html>

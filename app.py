@@ -17,7 +17,9 @@ if __name__!='__main__':
 # ------------------------------------------------------------------------------------------
 import argparse
 parser = argparse.ArgumentParser()
+parser.add_argument('--secret',         type=str,       default='',                help='the app secret key - this is nessesary and constant through application lifecycle - helps manage sessions')
 parser.add_argument('--topic',          type=str,       default='tOpIcS',          help='the main topic/subject')
+parser.add_argument('--welcome',        type=str,       default='Welcome!',         help='welcome text on login page')
 parser.add_argument('--login',          type=str,       default='__login__.xlsx',  help='login excel file')
 parser.add_argument('--case',           type=int,       default=0,                 help='convert uid to upper or lower case (-1 means lower-case, 1 means upper-case) (0 means as it is) ')
 parser.add_argument('--ext',            type=str,       default='',                help='csv string of allowed file extensions, keep blank to allow all')
@@ -65,11 +67,12 @@ else:
 # ------------------------------------------------------------------------------------------
 # WEB-SERVER INFORMATION
 # ------------------------------------------------------------------------------------------
-HOST_ALIAS =        f'{os.getlogin()} @ {platform.node()}:{platform.system()}.{platform.release()}'
-APP_SECRET_KEY =    HOST_ALIAS
+
+APP_SECRET_KEY =    args.secret.encode('utf8') if args.secret else f'{os.getlogin()}@{platform.node()}'.encode('utf8')
 HOST_IP =           args.host if args.host else '0.0.0.0'           # use "0.0.0.0" to listen on all interfaces
 HOST_PORT =         args.port                                       # use 8080 by default
-xprint(f'Alias: {HOST_ALIAS}\nEndpoint: {HOST_IP}:{HOST_PORT}')
+
+xprint(f'Endpoint: {HOST_IP}:{HOST_PORT}')
 # ------------------------------------------------------------------------------------------
 
 
@@ -128,15 +131,16 @@ db = read_db_from_disk()  #<----------- Created db here
 # displayed information 
 # ------------------------------------------------------------------------------------------
 HEADING_TEXT =          args.topic                  # usually the class/subject name
-WELCOME_TEXT =          'Login to continue'         # text above login box shown at home-page
-LOGIN_FAIL_TEXT =       'Login failed'              # text information when login fails
-LOGIN_CREATE_TEXT =     'Password created'          # text information when new password is created
+WELCOME_TEXT =          args.welcome                # text above login box shown at home-page
 LOGIN_CASE =            args.case
+LOGIN_NEED_TEXT =       '🔒'
+LOGIN_FAIL_TEXT =       '🔥'              # text information when login fails
+LOGIN_CREATE_TEXT =     '🔑'          # text information when new password is created
 # ------------------------------------------------------------------------------------------
 # password policy
 # ------------------------------------------------------------------------------------------
 MIN_PASSWORD_LEN = 1            # minimum password length that can be set by users
-INVALID_PASSWORD_WARN = f'Password should be atleast {MIN_PASSWORD_LEN} char(s) - can use alphabets, numbers, underscore and @-symbol' # a warning msg to be displayed when incorrect password is created
+INVALID_PASSWORD_WARN = f'can use alpha-numeric, underscore and @-symbol' # a warning msg to be displayed when incorrect password is created
 def VALIDATE_PASSWORD(password):   # a function that can validate the password - returns bool type
     try:
         assert len(password) >= MIN_PASSWORD_LEN
@@ -262,23 +266,21 @@ def login():
                         record['PASS'].values[0]=in_passwd
                         db.update(record)
                         xprint(f'[---------] updated record') # \n{record}
-                        msg = LOGIN_CREATE_TEXT
-                        heading = HEADING_TEXT
-                        warn = f'[{in_uid}] New password was created successfully'
+                        warn = LOGIN_CREATE_TEXT
+                        msg = f'[{in_uid}] New password was created successfully'
                         dprint(f'{named} just joined')
                         adc_total_login_create+=1
                                                
                     else: # new password is invalid valid
                         #xprint(f"[........] new password is invalid")  
-                        msg = LOGIN_FAIL_TEXT
-                        warn=f'[{in_uid}] New password is invalid - {INVALID_PASSWORD_WARN}'
-                        heading=HEADING_TEXT
+                        warn = LOGIN_FAIL_TEXT
+                        msg=f'[{in_uid}] New password is invalid - {INVALID_PASSWORD_WARN}'
+                        
                                                
                 else: #new password not provided       
                     #xprint(f"[.....] new password was not provided")             
-                    msg = LOGIN_FAIL_TEXT
-                    heading=HEADING_TEXT
-                    warn = f'[{in_uid}] New password must be created before logging in'
+                    warn = LOGIN_FAIL_TEXT
+                    msg = f'[{in_uid}] New password required - {INVALID_PASSWORD_WARN}'
                                            
             else: # re login
                 xprint(f"[........] revist login")
@@ -308,22 +310,19 @@ def login():
                         return redirect(url_for('upload'))
                     else:  
                         #xprint(f"[.....] password does not match")  
-                        msg = LOGIN_FAIL_TEXT
-                        heading=HEADING_TEXT
-                        warn = f'[{in_uid}] Password mismatch'
+                        warn = LOGIN_FAIL_TEXT
+                        msg = f'[{in_uid}] Password mismatch'
                         adc_total_login_failed+=1
                                                  
                 else: # password not provided
                     #xprint(f"[....] password not provided")  
-                    msg = LOGIN_FAIL_TEXT
-                    heading=HEADING_TEXT
-                    warn = f'[{in_uid}] Password not provided'
+                    warn = LOGIN_FAIL_TEXT
+                    msg = f'[{in_uid}] Password not provided'
                     adc_total_login_failed+=1
         else:
             xprint(f"[....] unmatched record {in_uid}")
-            msg = LOGIN_FAIL_TEXT
-            heading=HEADING_TEXT
-            warn = f'[{in_uid}] Not a valid user'
+            warn = LOGIN_FAIL_TEXT
+            msg = f'[{in_uid}] Not a valid user'
             adc_total_login_unknown+=1
                                     
     else:
@@ -334,10 +333,9 @@ def login():
         adc_total_hits+=1
         xprint(f"[+] page hit [{adc_total_hits}]")
         msg = WELCOME_TEXT
-        heading = HEADING_TEXT
-        warn = f'Hosted by {HOST_ALIAS}'
+        warn = LOGIN_NEED_TEXT 
         
-    return render_template(TEMPLATE_LOGIN, msg = msg, heading = heading, warn = warn)
+    return render_template(TEMPLATE_LOGIN, msg = msg, heading = HEADING_TEXT, warn = warn)
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------------------
@@ -436,7 +434,7 @@ def upload():
             why_failed = f"SUCCESS :: Uploaded new file [{file.filename}] "
             result.append((1, why_failed))
             n_success+=1
-            session['filed']= session['filed'] + [file.filename]
+            if file.filename not in session['filed']: session['filed'] = session['filed'] + [file.filename]
             adc_total_files_uploaded+=1
             adc_total_files_upload_failed-=1
 
@@ -452,6 +450,19 @@ def upload():
     #dprint(f"filed @ get-upload = {session['filed']}")
     msg = f'You have uploaded {len(file_list)} file(s)'  
     return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=HEADING_TEXT, filelist=file_list, status=INITIAL_UPLOAD_STATUS)
+# ------------------------------------------------------------------------------------------
+
+@app.route('/uploadf', methods =['GET'])
+def uploadf():
+    r""" force upload - i.e., refresh by using os.list dir """
+    if not session.get('has_login', False): return redirect(url_for('login'))
+    folder_name = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)),
+            app.config['UPLOAD_FOLDER'],
+            session['uid']) 
+    session['filed'] = os.listdir(folder_name)
+    return redirect(url_for('upload'))
+
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------------------

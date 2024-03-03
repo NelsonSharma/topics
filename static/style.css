@@ -1,100 +1,46 @@
 
 
-.header{
-    font-family:monospace;
-}
-.warn{
-    font-family:monospace;
-    color: #9a0808;
-    font-size: 16px;
-    font-weight: bold;
-}
-.status{
-    font-weight: bold;
-    font-size: 12px;
-    font-family:monospace;
-}
 
-.msg{
-    color: #000000;
-    font-weight: bold;
-    font-family:monospace;
-}
-.download{
-    color: #000000;
-    font-weight: bold;
-    font-size: 16px;
-    font-family:monospace;
-}
-
-.btn_login {
+.github_info {
     padding: 2px 10px;
-    background-color: #060472; 
-    color: #FFFFFF;
-    font-weight: bold;
-    font-size: large;
-    border-radius: 10px;
-    font-family:monospace;
-    text-decoration: none;
-}
-
-.btn_logout {
-    padding: 2px 10px;
-    background-color: #060472; 
-    color: #FFFFFF;
-    font-weight: bold;
-    font-size: large;
-    border-radius: 10px;
-    font-family:monospace;
-    text-decoration: none;
-}
-
-.btn_purge {
-    padding: 2px 10px;
-    background-color: #9a0808; 
-    color: #FFFFFF;
-    font-weight: bold;
-    font-size: large;
-    border-radius: 10px;
-    font-family:monospace;
-    text-decoration: none;
-}
-
-.btn_resources {
-    padding: 2px 10px;
-    background-color: #089a28; 
-    color: #FFFFFF;
-    font-weight: bold;
-    font-size: large;
-    border-radius: 10px;
-    font-family:monospace;
-    text-decoration: none;
-}
-
-.btn_refresh {
-    padding: 2px 10px;
-    background-color: #8d821f; 
-    color: #FFFFFF;
-    font-weight: bold;
-    font-size: large;
-    border-radius: 10px;
-    font-family:monospace;
-    text-decoration: none;
-}
-
-.btn_github {
-    padding: 2px 10px;
-    background-color: #5e5e5d; 
+    background-color: #516fa7; 
     color: #ffffff;
-    font-size: large;
+    font-size: medium;
     font-weight: bold;
     border-radius: 10px;
     font-family:monospace;
     text-decoration: none;
 }
 
+  
+.topic{
+    color: #000000;
+    font-size: xxx-large;
+    font-weight: bold;
+    font-family:monospace;    
+}
 
-.textbox{
+
+.msg_login{
+    color: #060472; 
+    font-size: large;
+    font-weight: bold;
+    font-family:monospace;    
+    animation-duration: 3s; 
+    animation-name: fader_msg;
+}
+@keyframes fader_msg {from {color: #ffffff;} to {color: #060472; } }
+
+.info_login{
+    color: #02703f;
+    font-size: large;
+    font-weight: bold;
+    font-family:monospace;    
+    animation-duration: 3s; 
+    animation-name: fadertxt;
+}
+
+.txt_login{
 
     text-align: center;
     font-family:monospace;
@@ -120,38 +66,6 @@
         outline: 0;
         box-shadow: 0 0 0 0 #fff inset, #1de9b6 0 0 0 3px;
     }
-
-}
-
-.textboxm{
-
-    text-align: center;
-    font-family:monospace;
-
-    color: rgba(0,0,0,.87);
-    border-bottom-color: rgba(0,0,0,.42);
-    font-size: 1rem;
-    font-weight: 400;
-    letter-spacing: .009375em;
-    text-decoration: inherit;
-    text-transform: inherit;
-    align-self: flex-end;
-    box-sizing: border-box;
-    padding: 20px 16px 6px;
-    transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    border: none;
-    border-bottom: 1px solid;
-    border-radius: 4px 4px 0 0;
-    background: rgb(245, 245, 245);
-    height: 56px;
-    :hover{
-        border-bottom-color: rgba(0,0,0,.87);
-        background: #ececec;
-    }
-    :focus{
-        border-color: #0021b4;
-    }
-    
 }
 ::placeholder {
     color: #888686;
@@ -161,16 +75,114 @@
     font-family:monospace;   
 }
 
-.word{
+.btn_login {
+    padding: 2px 10px;
+    background-color: #060472; 
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+    border-style:  none;
+}
+
+.topic_mid{
+    color: #000000;
+    font-size: x-large;
+    font-style: italic;
+    font-weight: bold;
+    font-family:monospace;    
+}
+
+.download{
+    padding: 10px 10px;
+    background-color: #ececec; 
+    color: #080000;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+
+
+
+.btn_download {
+    padding: 2px 10px;
+    background-color: #089a28; 
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+.userword{
     color: #12103c;
     font-weight: bold;
     font-family:monospace;    
-    font-size: 32px;
+    font-size: xxx-large;
 }
 
-.wordH{
-    color: #000000;
+.btn_logout {
+    padding: 2px 10px;
+    background-color: #060472; 
+    color: #FFFFFF;
     font-weight: bold;
-    font-family:monospace;    
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
 }
 
+
+.status{
+    padding: 10px 10px;
+    background-color: #232323; 
+    color: #ffffff;
+    font-size: medium;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+
+
+.btn_refresh {
+    padding: 2px 10px;
+    background-color: #a19636; 
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+
+.files_status{
+    font-weight: bold;
+    font-size: x-large;
+    font-family:monospace;
+}
+
+.files_list{
+    padding: 10px 10px;
+    background-color: #ececec; 
+    color: #080000;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+
+
+.btn_purge {
+    padding: 2px 10px;
+    background-color: #9a0808; 
+    border-style: none;
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
