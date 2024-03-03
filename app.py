@@ -237,7 +237,7 @@ def login():
         redirects to `upload` page on get request 
         force login on post method - this will force logout existung user if its different from the new one that is trying to login
         """
-    global adc_total_login_requests, adc_total_login_success, adc_total_login_failed, adc_total_login_create, adc_total_login_unknown, adc_total_hits
+    global adc_total_login_requests, adc_total_login_success, adc_total_login_failed, adc_total_login_create, adc_total_login_unknown, adc_total_hits, adc_total_force_logouts
     if request.method == 'POST' and 'uid' in request.form and 'passwd' in request.form:
         in_uid = f"{request.form['uid']}"
         in_passwd = f"{request.form['passwd']}"
@@ -295,6 +295,9 @@ def login():
                             #xprint(f"..... has directory {folder_name}")
                         except:
                             xprint(f'[!] Directory could not be created @ {folder_name} :: Force logout user {uid}')
+                            session['has_login'] = False
+                            session['uid'] = uid
+                            session['named'] = named
                             adc_total_force_logouts+=1
                             return redirect(url_for('logout'))
                     
@@ -347,7 +350,8 @@ def logout():
     r""" logout a user and redirect to login page """
     global adc_total_logouts
     xprint(f"[-] log out user {session['uid']}")
-    dprint(f'{session["named"]} is logging out') 
+    if session['has_login']:  dprint(f'{session["named"]} is logging out') 
+    else: dprint(f'{session["named"]} was removed due to invalid uid ({session["uid"]})') 
     session['has_login'] = False
     session['uid'] = ""
     session['named'] = ""
