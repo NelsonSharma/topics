@@ -27,6 +27,7 @@ parser.add_argument('--welcome',        type=str,       default='Welcome!',     
 parser.add_argument('--login',          type=str,       default='__login__.xlsx',  help='login excel file')
 parser.add_argument('--case',           type=int,       default=0,                 help='convert uid to upper or lower case (-1 means lower-case, 1 means upper-case) (0 means as it is) ')
 parser.add_argument('--ext',            type=str,       default='',                help='csv string of allowed file extensions, keep blank to allow all')
+parser.add_argument('--required',       type=str,       default='',                help='cvs list of files required - overrides ext')
 parser.add_argument('--maxupcount',     type=int,       default=0,                 help='maximum number of files that can be uploaded - keep 0 for no limit')
 parser.add_argument('--maxupsize',      type=float,     default=0.0,               help='maximum size (in MB) of file that can be uploaded - keep 0 for no limit')
 parser.add_argument('--port',           type=int,       default=8080,              help='port to host web server')
@@ -184,7 +185,7 @@ try: os.makedirs(UPLOAD_FOLDER_PATH, exist_ok=True)
 except: exit(f'uploads folder @ {UPLOAD_FOLDER_PATH} was not found and count not be created')
 xprint(f'Upload Folder: {UPLOAD_FOLDER_PATH}')
 
-ALLOWED_EXTENSIONS = set(args.ext.split(','))  # a set or list of file extensions that are allowed to be uploaded 
+ALLOWED_EXTENSIONS = set([x.strip() for x in args.ext.split(',') if x])  # a set or list of file extensions that are allowed to be uploaded 
 if '' in ALLOWED_EXTENSIONS: ALLOWED_EXTENSIONS.remove('')
 def get_valid_re_pattern(validext):
     if not validext: return ".+"
@@ -196,15 +197,19 @@ VALID_FILES_PATTERN = get_valid_re_pattern(ALLOWED_EXTENSIONS)
 # def VALIDATE_EXTENSION(filename):   # a function that checks for valid file extensions based on ALLOWED_EXTENSIONS
 #     if len(ALLOWED_EXTENSIONS): return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 #     else: return True
+REQUIRED_FILES = set([x.strip() for x in args.required.split(',') if x])  # a set or list of file extensions that are allowed to be uploaded 
+if '' in REQUIRED_FILES: REQUIRED_FILES.remove('')
+
 def VALIDATE_FILENAME(filename):   # a function that checks for valid file extensions based on ALLOWED_EXTENSIONS
     if '.' in filename: 
         name, ext = filename.rsplit('.', 1)
-        valid_ext = bool(re.fullmatch(f'.+\.({VALID_FILES_PATTERN})$', f'{name}.{ext.lower()}'))
-        #valid_ext = ((ext.lower() in ALLOWED_EXTENSIONS) if len(ALLOWED_EXTENSIONS) else True)
+        if REQUIRED_FILES:  return f'{name}.{ext.lower()}' in REQUIRED_FILES
+        else:               return bool(re.fullmatch(f'.+\.({VALID_FILES_PATTERN})$', f'{name}.{ext.lower()}'))
     else:               
         name, ext = filename, ''
-        valid_ext = not ALLOWED_EXTENSIONS
-    return valid_ext
+        if REQUIRED_FILES:  return f'{name}' in REQUIRED_FILES
+        else:               return not ALLOWED_EXTENSIONS
+
 
 KB, MB, GB, TB = 2**10, 2**20, 2**30, 2**40
 MAX_UPLOAD_SIZE = abs(args.maxupsize*MB)  if args.maxupsize else TB       # maximum upload file size 
@@ -227,10 +232,13 @@ else:
             mus_display = f'{mus_tb:.2f} TB'
 
 INITIAL_UPLOAD_STATUS = []           # a list of notes to be displayed to the users about uploading files
-if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\t#[{len(ALLOWED_EXTENSIONS)}] {ALLOWED_EXTENSIONS}'))
-else:                   INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\tany'))
+if REQUIRED_FILES:
+    INITIAL_UPLOAD_STATUS.append((-1, f'accepted files:\t#[{len(REQUIRED_FILES)}] {REQUIRED_FILES}'))
+else:
+    if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\t#[{len(ALLOWED_EXTENSIONS)}] {ALLOWED_EXTENSIONS}'))
+    #else:                   INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\tany'))
 INITIAL_UPLOAD_STATUS.append((-1, f'max file-size:\t{mus_display}'))
-INITIAL_UPLOAD_STATUS.append((-1, f'max file-count:\t{MAX_UPLOAD_COUNT}'))
+if not (MAX_UPLOAD_COUNT is inf): INITIAL_UPLOAD_STATUS.append((-1, f'max file-count:\t{MAX_UPLOAD_COUNT}'))
 
 xprint(f'Upload Settings: {INITIAL_UPLOAD_STATUS}')
 # ------------------------------------------------------------------------------------------
@@ -458,7 +466,7 @@ def upload():
             #xprint(f"[...........] {file.filename} {sf}")
         #---------------------------------------------------------------------------------
             if not VALIDATE_FILENAME(sf):
-                why_failed = f"FAILURE :: Extension is invalid [{sf}] "
+                why_failed =  f"❌ File not accepted [{sf}] " if REQUIRED_FILES else f"❌ Extension is invalid [{sf}] "
                 result.append((0, why_failed))
                 adc_uploads['failed']+=1
                 continue
@@ -467,14 +475,14 @@ def upload():
             if not os.path.exists(file_name):
                 #file_list = os.listdir(folder_name)
                 if len(session['filed'])>=MAX_UPLOAD_COUNT:
-                    why_failed = f"FAILURE :: Upload limit reached [{sf}] "
+                    why_failed = f"❌ Upload limit reached [{sf}] "
                     result.append((0, why_failed))
                     adc_uploads['failed']+=1
                     continue
 
 
             file.save(file_name) 
-            why_failed = f"SUCCESS :: Uploaded new file [{sf}] "
+            why_failed = f"✔ Uploaded new file [{sf}] "
             result.append((1, why_failed))
             adc_uploads['success']+=1
             n_success+=1
