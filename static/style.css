@@ -93,16 +93,6 @@
     font-family:monospace;    
 }
 
-.download{
-    padding: 10px 10px;
-    background-color: #ececec; 
-    color: #080000;
-    font-size: large;
-    border-radius: 10px;
-    font-family:monospace;
-    text-decoration: none;
-}
-
 
 
 .btn_download {
@@ -162,11 +152,22 @@
     font-family:monospace;
 }
 
-.files_list{
+.files_list_up{
     padding: 10px 10px;
     background-color: #ececec; 
     color: #080000;
-    font-size: large;
+    font-size: medium;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+
+.files_list_down{
+    padding: 10px 10px;
+    background-color: #ececec; 
+    color: #080000;
+    font-size: x-large;
+    font-weight: bold;
     border-radius: 10px;
     font-family:monospace;
     text-decoration: none;
@@ -204,6 +205,6 @@
     font-weight: bold;
     font-family:monospace;    
     animation-duration: 10s;
-    animation-name: fader_admin;
 }
-@keyframes fader_admin {from {color: #ff0000;} to {color: #000000; } }
+@keyframes fader_admin_failed {from {color: #ff0000;} to {color: #000000; } }
+@keyframes fader_admin_success {from {color: #22ff00;} to {color: #000000; } }

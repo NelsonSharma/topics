@@ -18,9 +18,9 @@
         <a href="{{ url_for('upload') }}" class="btn_download">Back</a>
         <br>
         <br>
-        <div class="download">
+        <div class="files_list_down">
             <ol>
-            {% for file,p in filelist %}
+            {% for file in filelist %}
             <li><a href="{{ (request.path + '/' if request.path != '/' else '') + file }}" style="text-decoration: none; color: rgb(20, 20, 20);" >{{ file }}</a></li>
             <br>
             {% endfor %}

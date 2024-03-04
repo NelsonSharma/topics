@@ -11,12 +11,20 @@
     <!-- ---------------------------------------------------------->
     
     <div align="left" style="padding: 20px;">
-        <div class="topic_mid">{{ heading }}<span class="admin_mid"> admin</span></div>
+        <div class="topic_mid">{{ heading }}</div>
         <div class="userword">{{session.uid}}◦{{session.named}}</div>
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
         <a href="{{ url_for('upload') }}" class="btn_download">Back</a>
         <br>
+        <br>
+
+        {% if success %}
+        <span class="admin_mid" style="animation-name: fader_admin_success;"> {{ status }} </span>
+        {% else %}
+        <span class="admin_mid" style="animation-name: fader_admin_failed;"> {{ status }} </span>
+        {% endif %}
+        
         <br>
         <br>
         <a href="{{ url_for('refresh_dll') }}" class="btn_admin">⚙ Update download-list</a>

@@ -45,16 +45,16 @@ use ctrl+c to stop the server
 ### [4] (optional) start with extra arguments
 
 ```cmd
-python app.py --secret="my secret" --topic="my topic" --welcome="my greetings" --login="my login.xlsx" --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --verbose=2
+python app.py --base="." --topic="my topic" --welcome="my greetings" --login="my login.xlsx" --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --verbose=2
 ```
 
 Description of Arguments
 
 ```python
 
---secret
-# the secret key for your app which should be constant for every instance 
-# default is empty-string which means secret will be auto-generated  
+--base
+# the base directory to server files
+# default is the same directory as the __file__
 
 --topic         
 # name of the topic - this is displayed as the main heading at the top of all pages
