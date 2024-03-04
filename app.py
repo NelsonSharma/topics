@@ -25,7 +25,7 @@ parser.add_argument('--secret',         type=str,       default='__secret__.txt'
 parser.add_argument('--topic',          type=str,       default='tOpIcS',          help='the main topic/subject')
 parser.add_argument('--welcome',        type=str,       default='Welcome!',        help='welcome text on login page')
 parser.add_argument('--login',          type=str,       default='__login__.xlsx',  help='login excel file')
-parser.add_argument('--case',           type=int,       default=1,                 help='convert uid to upper or lower case (-1 means lower-case, 1 means upper-case) (0 means as it is) ')
+parser.add_argument('--case',           type=int,       default=0,                 help='convert uid to upper or lower case (-1 means lower-case, 1 means upper-case) (0 means as it is) ')
 parser.add_argument('--ext',            type=str,       default='',                help='csv string of allowed file extensions, keep blank to allow all')
 parser.add_argument('--maxupcount',     type=int,       default=0,                 help='maximum number of files that can be uploaded - keep 0 for no limit')
 parser.add_argument('--maxupsize',      type=float,     default=0.0,               help='maximum size (in MB) of file that can be uploaded - keep 0 for no limit')
