@@ -11,15 +11,27 @@ Author: Nelson.S
 __version__="2.3.24"
 from sys import exit
 if __name__!='__main__': exit()
-
+class Fake:
+    def __init__(self, **kwargs) -> None:
+        for name, attribute in kwargs.items(): 
+            try:setattr(self, name, attribute)
+            except:pass
+            
+        
 
 #%% [0]
+VALID_ARGS = set([
+    'base','secret','login','rename',
+    'topic','emoji','welcome','case','ext','required','maxupcount','maxupsize',
+    'port','host',
+    'uploads','downloads','adc',
+    'verbose'])
 # ------------------------------------------------------------------------------------------
 # parse arguments
 # ------------------------------------------------------------------------------------------
 import argparse
-
 parser = argparse.ArgumentParser()
+parser.add_argument('--config',         type=str,       default='',                help='all arguments in a config file - overrides everything')
 parser.add_argument('--base',           type=str,       default='',                help='the base directory to host at')
 parser.add_argument('--secret',         type=str,       default='__secret__.txt',  help='the app secret key - this is nessesary and constant through application lifecycle - helps manage sessions')
 parser.add_argument('--login',          type=str,       default='__login__.xlsx',  help='login excel file')
@@ -39,6 +51,18 @@ parser.add_argument('--downloads',      type=str,       default='__downloads__',
 parser.add_argument('--adc',            type=str,       default='__adc__',         help='default dir to store adc (data)')
 parser.add_argument('--verbose',        type=int,       default=0,                 help='verbose level - keep 0 for silent')
 args = parser.parse_args()
+
+if args.config: # override everything
+    try:
+        config_func_name = f'{args.config}'
+        import importlib
+        config_ = getattr(importlib.import_module("config") , config_func_name)()
+        args = Fake(**config_)
+    except: exit(f'error reading config @ {args.config}')
+
+    for k in VALID_ARGS: 
+        if not hasattr(args, k): exit(f'config is missing attribute {k}')
+
 # ------------------------------------------------------------------------------------------
 # imports ----------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------
@@ -137,6 +161,7 @@ def write_db_to_disk(db_frame):
     try:
         db_frame.to_excel(LOGIN_XL_PATH, engine='openpyxl', sheet_name="login", index=False) # save updated login information to excel sheet
         xprint(f'⇒ Persisted login file:\t{LOGIN_XL_PATH}')
+        app.config['pendingdb'] = 0
         return True
     except PermissionError:
         dprint(f'⇒ PermissionError - {LOGIN_XL_PATH} might be open, close it first.')

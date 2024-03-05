@@ -52,6 +52,12 @@ Description of Arguments
 
 ```python
 
+--config
+# the name of function in config.py that returns a configuration dict
+# when specified, it will ignore all other arguments
+# instead all arguments are built from the configuration dict that is returned
+# default is empty-string which means not using config.py - use args instead
+
 --base
 # the base directory to server files
 # default is the same directory as the __file__
