@@ -22,9 +22,11 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--base',           type=str,       default='',                help='the base directory to host at')
 parser.add_argument('--secret',         type=str,       default='__secret__.txt',  help='the app secret key - this is nessesary and constant through application lifecycle - helps manage sessions')
-parser.add_argument('--topic',          type=str,       default='tOpIcS',          help='the main topic/subject')
-parser.add_argument('--welcome',        type=str,       default='Welcome!',        help='welcome text on login page')
 parser.add_argument('--login',          type=str,       default='__login__.xlsx',  help='login excel file')
+parser.add_argument('--rename',         type=int,       default=0,                 help='allow updating user name field')
+parser.add_argument('--topic',          type=str,       default='tOpIcS',          help='the main topic/subject')
+parser.add_argument('--emoji',          type=str,       default='💻',              help='an emoji character to be displayed with uid and name')
+parser.add_argument('--welcome',        type=str,       default='Welcome!',        help='welcome text on login page')
 parser.add_argument('--case',           type=int,       default=0,                 help='convert uid to upper or lower case (-1 means lower-case, 1 means upper-case) (0 means as it is) ')
 parser.add_argument('--ext',            type=str,       default='',                help='csv string of allowed file extensions, keep blank to allow all')
 parser.add_argument('--required',       type=str,       default='',                help='cvs list of files required - overrides ext')
@@ -258,6 +260,12 @@ app.secret_key =          APP_SECRET_KEY
 app.config['base'] =      BASEDIR
 app.config['uploads'] =   UPLOAD_FOLDER_PATH
 app.config['downloads'] = DOWNLOAD_FOLDER_PATH
+app.config['emoji'] =     args.emoji
+app.config['topic'] =     args.topic
+app.config['hostinfo'] =  HOST_INFO
+app.config['dfl'] = DOWNLOAD_FILE_LIST
+app.config['rename'] = bool(args.rename)
+app.config['pendingdb'] = 0
 class UploadFileForm(FlaskForm): # The upload form using FlaskForm
     file = MultipleFileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
@@ -296,6 +304,7 @@ def login():
     if request.method == 'POST' and 'uid' in request.form and 'passwd' in request.form:
         in_uid = f"{request.form['uid']}"
         in_passwd = f"{request.form['passwd']}"
+        in_name = f'{request.form["named"]}' if 'named' in request.form else ''
         adc_login['requests']+=1 #xprint(f"[.] some trying to login using [ {in_uid} | {in_passwd} ]")
         in_query = in_uid if not args.case else (in_uid.upper() if args.case>0 else in_uid.lower())
         xprint(f"◦ login attempt by [{in_uid}] will case-query [{in_query}]")
@@ -309,6 +318,7 @@ def login():
             named = record['NAME'].values[0]
             uid = record['UID'].values[0]
             admind = record['ADMIN'].values[0]
+            if pd.isnull(admind): admind=''
             #print(f'{passwd=}, {named=}, {uid=}, {admind=}')
             xprint(f"◦ matched record [{uid}|{named}]")
             if pd.isnull(passwd) or passwd=='': # fist login
@@ -317,12 +327,17 @@ def login():
                     #xprint(f"[---------] new password provided [{in_passwd}]")
                     if VALIDATE_PASSWORD(in_passwd): # new password is valid
                         #xprint(f"[---------] new password is valid")  
-                        record['PASS'].values[0]=in_passwd
+                        record['PASS'].values[0]=in_passwd 
+                        if in_name and in_name!=named and app.config['rename'] : 
+                            record['NAME'].values[0]=in_name
+                            named = in_name
                         db.update(record)
+                        app.config['pendingdb']+=1
                         xprint(f'◦ updated record') # \n{record}
+
                         warn = LOGIN_CREATE_TEXT
-                        msg = f'[{in_uid}] New password was created successfully'
-                        dprint(f'● {named} just joined')
+                        msg = f'[{in_uid}.{named}] New password was created successfully'
+                        dprint(f'● {in_uid}.{named} just joined')
                         adc_login['create']+=1
                                                
                     else: # new password is invalid valid
@@ -357,13 +372,23 @@ def login():
                     
                         session['has_login'] = True
                         session['uid'] = uid
-                        session['named'] = named
                         session['admind'] = admind
                         session['filed'] = os.listdir(folder_name)
+                        
+                        if in_name and in_name!=named and app.config['rename']: 
+                            session['named'] = in_name
+                            record['NAME'].values[0]=in_name
+                            db.update(record)
+                            app.config['pendingdb']+=1
+                            named = in_name
+                            xprint(f'◦ updated record') # \n{record}
+                        else: session['named'] = named
+
                         xprint(f'◦ login success {uid}|{named}')
-                        dprint(f'● {session["named"]} has logged in') 
+                        dprint(f'● {session["uid"]}.{session["named"]} has logged in') 
                         #xprint(f"filed @ login= {session['filed']}")
                         adc_login['success']+=1
+
                         return redirect(url_for('upload'))
                     else:  
                         #xprint(f"[.....] password does not match")  
@@ -390,14 +415,16 @@ def login():
         msg = args.welcome
         warn = LOGIN_NEED_TEXT 
         
-    return render_template(TEMPLATE_LOGIN, msg = msg, heading = args.topic, warn = warn, info=HOST_INFO)
+    return render_template(TEMPLATE_LOGIN, msg = msg,  warn = warn)
 
 @app.route('/logout')
 def logout():
     r""" logout a user and redirect to login page """
+    if not session.get('has_login', False):  return redirect(url_for('login'))
+    if not session.get('uid', False): return redirect(url_for('login'))
     xprint(f"◦ log out user {session['uid']}")
-    if session['has_login']:  dprint(f'● {session["named"]} has logged out') 
-    else: dprint(f'● {session["named"]} was removed due to invalid uid ({session["uid"]})') 
+    if session['has_login']:  dprint(f'● {session["uid"]}.{session["named"]} has logged out') 
+    else: dprint(f'● {session["uid"]}.{session["named"]} was removed due to invalid uid ({session["uid"]})') 
     session['has_login'] = False
     session['uid'] = ""
     session['named'] = ""
@@ -423,7 +450,7 @@ def download(req_path):
     
     if not session.get('has_login', False): return redirect(url_for('login'))
     abs_path = os.path.join(app.config['downloads'], req_path) # Joining the base and the requested path
-    global adc_downloads, DOWNLOAD_FILE_LIST
+    global adc_downloads
     if req_path:
         xprint(f"◦ {session['uid']} trying to download {req_path}")
         adc_downloads['requests']+=1
@@ -433,10 +460,10 @@ def download(req_path):
         return abort(404) # Return 404 if path doesn't exist
     if os.path.isfile(abs_path): 
         xprint(f"◦ sending file ")
-        dprint(f'● {session["named"]} just downloaded the file {req_path}')
+        dprint(f'● {session["uid"]}.{session["named"]} just downloaded the file {req_path}')
         adc_downloads['success']+=1
         return send_file(abs_path) # Check if path is a file and serve
-    return render_template(TEMPLATE_DOWNLOAD, filelist = DOWNLOAD_FILE_LIST, heading=args.topic)
+    return render_template(TEMPLATE_DOWNLOAD)
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------------------
@@ -494,15 +521,15 @@ def upload():
         #---------------------------------------------------------------------------------
         
         xprint(f"◦ upload results: \n{result}")
-        dprint(f'● {session["named"]} just uploaded {n_success} file(s)') 
+        dprint(f'● {session["uid"]}.{session["named"]} just uploaded {n_success} file(s)') 
         file_list = session['filed'] #os.listdir(folder_name)
         msg = f'You have uploaded {len(file_list)} file(s)'  
-        return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=args.topic, filelist=file_list, status=result, admin = not pd.isnull(session['admind']))
+        return render_template(TEMPLATE_UPLOAD, form=form, msg=msg,  filelist=file_list, status=result)
         
     file_list = session['filed'] #os.listdir(folder_name)
     #dprint(f"filed @ get-upload = {session['filed']}")
     msg = f'You have uploaded {len(file_list)} file(s)'  
-    return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=args.topic, filelist=file_list, status=INITIAL_UPLOAD_STATUS, admin = not pd.isnull(session['admind']))
+    return render_template(TEMPLATE_UPLOAD, form=form, msg=msg,  filelist=file_list, status=INITIAL_UPLOAD_STATUS)
 # ------------------------------------------------------------------------------------------
 
 @app.route('/uploadf', methods =['GET'])
@@ -530,7 +557,7 @@ def purge():
         file_list = os.listdir(folder_name)
         for f in file_list: os.remove(os.path.join(folder_name, f))
         xprint(f"◦ {session['uid']} has purged their files.")
-        dprint(f'● {session["named"]} used purge')
+        dprint(f'● {session["uid"]}.{session["named"]} used purge')
         session['filed']=[]
         #dprint(f"filed @ purge= {session['filed']}")
         global adc_purged
@@ -546,49 +573,49 @@ def purge():
 FAILED_ADMIN_MSG = "This action requires admin privilege"
 @app.route('/ref', methods =['GET']) 
 def refresh_dll():
-    r""" refreshes the  DOWNLOAD_FILE_LIST"""
+    r""" refreshes the  downloads"""
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    if not pd.isnull(session['admind']): 
-        global DOWNLOAD_FILE_LIST, GET_DOWNLOAD_FILE_LIST
-        DOWNLOAD_FILE_LIST = GET_DOWNLOAD_FILE_LIST()
-        dprint(f"▶ {session['uid']} just refreshed the download list.")
+    if session['admind']: 
+        global GET_DOWNLOAD_FILE_LIST
+        app.config['dfl'] = GET_DOWNLOAD_FILE_LIST()
+        dprint(f"▶ {session['uid']}.{session['named']} just refreshed the download list.")
         STATUS, SUCCESS =  "Update download-list", True
     else: STATUS, SUCCESS =  FAILED_ADMIN_MSG, False
     TEMPLATE_ADMIN = 'admin.html'
-    return render_template(TEMPLATE_ADMIN, heading=args.topic, status=STATUS, success=SUCCESS)
+    return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 @app.route('/dbw', methods =['GET']) 
 def persist_db():
     r""" writes db to disk """
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    if not pd.isnull(session['admind']): 
+    if session['admind']: 
         global db, write_db_to_disk
         if write_db_to_disk(db):
-            dprint(f"▶ {session['uid']} just persisted the db to disk.")
+            dprint(f"▶ {session['uid']}.{session['named']} just persisted the db to disk.")
             STATUS, SUCCESS = "Persisted db to disk", True
         else: STATUS, SUCCESS =  f"Write error '{args.login}' might be open", False
     else: STATUS, SUCCESS =  FAILED_ADMIN_MSG, False
     TEMPLATE_ADMIN = 'admin.html'
-    return render_template(TEMPLATE_ADMIN, heading=args.topic, status=STATUS, success=SUCCESS)
+    return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 @app.route('/dbr', methods =['GET']) # rdb for reload db
 def reload_db():
     r""" reloads db from disk """
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    if not pd.isnull(session['admind']): 
+    if session['admind']: 
         global db, read_db_from_disk
         db = read_db_from_disk()
-        dprint(f"▶ {session['uid']} just reloaded the db from disk.")
+        dprint(f"▶ {session['uid']}.{session['named']} just reloaded the db from disk.")
         STATUS, SUCCESS = "Reloaded db from disk", True
     else: STATUS, SUCCESS = FAILED_ADMIN_MSG, False
     TEMPLATE_ADMIN = 'admin.html'
-    return render_template(TEMPLATE_ADMIN, heading=args.topic, status=STATUS, success=SUCCESS)
+    return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 # ------------------------------------------------------------------------------------------
 @app.route('/admin', methods =['GET'])
 def adminpage():
     r""" opens admin page """ 
     if not session.get('has_login', False): return redirect(url_for('login'))
     TEMPLATE_ADMIN = 'admin.html'
-    if not pd.isnull(session['admind']): return render_template(TEMPLATE_ADMIN, heading=args.topic, status="You are an Admin", success=True)
-    else: return render_template(TEMPLATE_ADMIN, heading=args.topic, status="You are not an Admin", success=False)
+    if session['admind']: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=True)
+    else: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=False)
 
 
 #%% [5]

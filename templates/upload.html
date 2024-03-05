@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title> 🔺 {{ heading }} | {{ session.uid }} </title>
+		<title> 🔺 {{ config.topic }} | {{ session.uid }} </title>
 		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">					 
 	</head>
     <body>
@@ -11,8 +11,8 @@
     <!-- ---------------------------------------------------------->
     
     <div align="left" style="padding: 20px;">
-        <div class="topic_mid">{{ heading }}</div>
-        <div class="userword">{{session.uid}}◦{{session.named}}</div>
+        <div class="topic_mid">{{ config.topic }}</div>
+        <div class="userword">{{session.uid}} {{ config['emoji'] }} {{session.named}}</div>
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
         <a href="{{ url_for('download') }}" class="btn_download">Downloads</a>
@@ -26,7 +26,7 @@
                     }
                 }
             </script>
-        {% if admin %}
+        {% if session.admind %}
         <a href="{{ url_for('adminpage') }}" class="btn_admin">⚙</a>
         {% endif %}
         <br>

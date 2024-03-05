@@ -45,7 +45,7 @@ use ctrl+c to stop the server
 ### [4] (optional) start with extra arguments
 
 ```cmd
-python app.py --base="." --topic="my topic" --welcome="my greetings" --login="my login.xlsx" --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --verbose=2
+python app.py --base="./__my base__" --secret="my secret.txt" --login="my login.xlsx" --rename=1 --topic="my topic" --emoji="🧡" --welcome="my greetings"  --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --required="" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --adc="my adc" --verbose=3
 ```
 
 Description of Arguments
@@ -56,17 +56,31 @@ Description of Arguments
 # the base directory to server files
 # default is the same directory as the __file__
 
---topic         
-# name of the topic - this is displayed as the main heading at the top of all pages
-# default is "tOpIcS"
-
---welcome
-# a welcome message to be displayed when a user lands on the login page
-# default is "Welcome!"
+--secret
+# the file containing app secret key
+# will be auto-generated if not found - will use in subsequent runs
+# default is "__secret__.txt"
 
 --login         
 # name of login database file - an Excel file stored in the current dir 
 # default is "__login__.xlsx" (will auto-create if not found)
+
+--rename
+# if true (1), displays the "update-name" field on login page
+# users can update their name using this field
+# default is false(0)
+
+--topic         
+# name of the topic - this is displayed as the main heading at the top of all pages
+# default is "tOpIcS"
+
+--emoji
+# an emoji to display in between user-id and name 
+# default is "💻" (can be blank as well)
+
+--welcome
+# a welcome message to be displayed when a user lands on the login page
+# default is "Welcome!"
 
 --case          
 # convert uid to upper or lower case 
@@ -76,6 +90,11 @@ Description of Arguments
 --ext           
 # allowed file extensions that can be uploaded (expects a CSV-string)
 # default is empty-string which means any file is allowed
+
+--required
+# allowed file names that can be uploaded (expects a CSV-string)
+# these are specific filenames and will override --ext
+# default is empty-string which means no-requirement
 
 --maxupcount    
 # max no. of files that a user can upload

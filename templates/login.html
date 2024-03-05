@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title> 🔒 {{ heading }} </title>
+        <title> 🔒 {{ config.topic }} </title>
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">  
     </head>
     <body>
@@ -12,7 +12,7 @@
 
     <div align="center">
         <br>
-        <div class="topic">{{ heading }}</div>
+        <div class="topic">{{ config.topic }}</div>
         <br>
         <br>
         <form action="{{ url_for('login') }}" method="post">
@@ -27,6 +27,11 @@
             <input id="passwd" name="passwd" type="password" placeholder="... password ..." class="txt_login"/>
             <br>
             <br>
+            {% if config.rename %}
+            <input id="named" name="named" type="text" placeholder="... update-name ..." class="txt_login"/>
+            <br>
+            <br>
+            {% endif %}
             <input type="submit" class="btn_login" value="Login">
             <br>
             <br>
@@ -38,7 +43,7 @@
     <!-- ---------------------------------------------------------->
     
     <div align="center">
-    <div><span style="font-size: xx-large;">💻</span><br><span class="info_login">{{ info }}</span></div>
+    <div><span style="font-size: xx-large;">💻</span><br><span class="info_login">{{ config.hostinfo }}</span></div>
     <div style="font-size:large">📤 <a href="https://github.com/NelsonSharma/topics" class="github_info"><i>topics</i> ● GitHub</a> 📥</div>
     <br>
     </div>
