@@ -20,20 +20,20 @@
         <br>
 
         {% if success %}
-        <span class="admin_mid" style="animation-name: fader_admin_success;"> {{ status }} </span>
+        <span class="admin_mid" style="animation-name: fader_admin_success;">✓ {{ status }} </span>
         {% else %}
-        <span class="admin_mid" style="animation-name: fader_admin_failed;"> {{ status }} </span>
+        <span class="admin_mid" style="animation-name: fader_admin_failed;">✗ {{ status }} </span>
         {% endif %}
         
         <br>
         <br>
-        <a href="{{ url_for('refresh_dll') }}" class="btn_admin">⚙ Update download-list</a>
+        <a href="{{ url_for('refresh_dll') }}" class="btn_admin">⚙ Update download-list ▤</a>
         <br>
         <br>
-        <a href="{{ url_for('persist_db') }}" class="btn_admin">⚙ Persist login-db</a>
+        <a href="{{ url_for('persist_db') }}" class="btn_admin">⚙ Persist login-db ↴</a>
         <br>
         <br>
-        <a href="{{ url_for('reload_db') }}" class="btn_admin">⚙ Reload login-db</a>
+        <a href="{{ url_for('reload_db') }}" class="btn_admin">⚙ Reload login-db ↺</a>
         <br>
         <br>
 

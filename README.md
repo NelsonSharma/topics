@@ -102,10 +102,15 @@ Description of Arguments
 # name of the folder used to serve files as resources
 # default is "__downloads__"
 
+--adc       
+# analytical data collection directory
+# data related to each server run is stored in json format in this dir
+# default is '__adc__'
+
 --verbose       
 # verbose level 
-# (0=silent), (1=events), (2=detailed), (>2=detailed with timestamp)
-# default is [1]
+# (0=silent) (1=events) (2=events+time) (3=detailed+time) 
+# default is [0]
 
 ```
 

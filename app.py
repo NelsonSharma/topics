@@ -34,7 +34,8 @@ parser.add_argument('--port',           type=int,       default=8080,           
 parser.add_argument('--host',           type=str,       default='',                help='ip-address to host web server, leave blank to server on all IPs - same as 0.0.0.0')
 parser.add_argument('--uploads',        type=str,       default='__uploads__',     help='uploads folder')
 parser.add_argument('--downloads',      type=str,       default='__downloads__',   help='downloads folder')
-parser.add_argument('--verbose',        type=int,       default=1,                 help='verbose level 0=silent, 1=events, 2=detailed, 3 or more=detailed with timestamp')
+parser.add_argument('--adc',            type=str,       default='__adc__',         help='default dir to store adc (data)')
+parser.add_argument('--verbose',        type=int,       default=0,                 help='verbose level - keep 0 for silent')
 args = parser.parse_args()
 # ------------------------------------------------------------------------------------------
 # imports ----------------------------------------------------------------------------------
@@ -59,13 +60,13 @@ if args.verbose==0:
     def dprint(msg): pass
 elif args.verbose==1:
     def xprint(msg): pass
-    def dprint(msg): print(f'[{now()}] :: {msg}' )
+    def dprint(msg): print(msg)
 elif args.verbose==2:
-    def xprint(msg): print(msg)
-    def dprint(msg): print(f'[{now()}] :: {msg}' )
+    def xprint(msg): pass
+    def dprint(msg): print(f'[{now()}]\t{msg}' )
 elif args.verbose==3:
-    def xprint(msg): print(f'[{now()}] :: {msg}' )
-    def dprint(msg): print(f'[{now()}] :: {msg}' )
+    def xprint(msg): print(msg)
+    def dprint(msg): print(f'[{now()}]\t{msg}' )
 else:
     def xprint(msg): pass
     def dprint(msg): pass
@@ -79,7 +80,7 @@ else:
 BASEDIR = os.path.abspath((args.base if args.base else os.path.dirname(__file__)))
 try:     os.makedirs(BASEDIR, exist_ok=True)
 except:  exit(f'[!] base directory  @ {BASEDIR} was not found and could not be created') 
-
+xprint(f'⚙ Base dicectiry:\t{BASEDIR}')
 # ------------------------------------------------------------------------------------------
 # WEB-SERVER INFORMATION
 # ------------------------------------------------------------------------------------------\
@@ -90,9 +91,11 @@ if not os.path.isfile(APP_SECRET_KEY_FILE): #< --- if key dont exist, create it
     try:
         with open(APP_SECRET_KEY_FILE, 'w') as f: f.write(APP_SECRET_KEY) #<---- auto-generated key
     except: exit(f'could not create secret key @ {APP_SECRET_KEY_FILE}')
+    xprint(f'⇒ New secret created:\t{APP_SECRET_KEY_FILE}')
 else:
     try:
         with open(APP_SECRET_KEY_FILE, 'r') as f: APP_SECRET_KEY = f.read()
+        xprint(f'⇒ Load secret from:\t{APP_SECRET_KEY_FILE}')
     except: exit(f'could not read secret key @ {APP_SECRET_KEY_FILE}')
 
 
@@ -107,7 +110,7 @@ else:
 if not args.login: exit(f'login file was not provided!')
 LOGIN_XL_PATH = os.path.join( BASEDIR, args.login) 
 if not os.path.isfile(LOGIN_XL_PATH): 
-    xprint(f'Login file {LOGIN_XL_PATH} not found - creating new...')
+    xprint(f'⇒ Login file {LOGIN_XL_PATH} not found - creating new...')
     db_dict = { #<---------------- default login file
         'ADMIN': [f'+'], #<---- any non blank string will work
         'UID': [f'{os.getlogin()}'],
@@ -119,22 +122,22 @@ if not os.path.isfile(LOGIN_XL_PATH):
     #xprint(f'Created New db\n{db_frame}\n')
     db_frame.to_excel(LOGIN_XL_PATH, sheet_name="login", index=False) # save updated login information to excel sheet
     del db_dict, db_frame
-    xprint(f'Created new login file {LOGIN_XL_PATH}')
+    xprint(f'⇒ Created new login file:\t{LOGIN_XL_PATH}')
 # ------------------------------------------------------------------------------------------
 def read_db_from_disk():
     db_frame = pd.read_excel(LOGIN_XL_PATH, dtype=str, engine='openpyxl') #<---- reading an invalid excel file may throw error - to be handled by user
     for si in ['ADMIN', 'UID', 'NAME', 'PASS']: db_frame[si] = db_frame[si].astype(object)
     #xprint(f'Loaded db\n{db_frame}\n')
-    xprint(f'Loaded login file @ {LOGIN_XL_PATH}')
+    xprint(f'⇒ Loaded login file:\t{LOGIN_XL_PATH}')
     return db_frame
 # ------------------------------------------------------------------------------------------
 def write_db_to_disk(db_frame): 
     try:
         db_frame.to_excel(LOGIN_XL_PATH, engine='openpyxl', sheet_name="login", index=False) # save updated login information to excel sheet
-        xprint(f'Persisted login file {LOGIN_XL_PATH}')
+        xprint(f'⇒ Persisted login file:\t{LOGIN_XL_PATH}')
         return True
     except PermissionError:
-        dprint(f'PermissionError - {LOGIN_XL_PATH} might be open, close it first.')
+        dprint(f'⇒ PermissionError - {LOGIN_XL_PATH} might be open, close it first.')
         return False
     
 # ------------------------------------------------------------------------------------------
@@ -165,7 +168,7 @@ if not args.downloads: exit(f'downloads folder was not provided!')
 DOWNLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.downloads) 
 try: os.makedirs(DOWNLOAD_FOLDER_PATH, exist_ok=True)
 except: exit(f'downloads folder @ {DOWNLOAD_FOLDER_PATH} was not found and count not be created')
-xprint(f'Download Folder: {DOWNLOAD_FOLDER_PATH}')
+xprint(f'⚙ Download Folder:\t{DOWNLOAD_FOLDER_PATH}')
 def GET_DOWNLOAD_FILE_LIST (): 
     dlist = []
     d = DOWNLOAD_FOLDER_PATH
@@ -174,7 +177,7 @@ def GET_DOWNLOAD_FILE_LIST ():
         if os.path.isfile(p): dlist.append(f)
     return dlist
 DOWNLOAD_FILE_LIST = GET_DOWNLOAD_FILE_LIST()
-xprint(f'Download filelist: {len(DOWNLOAD_FILE_LIST)} item(s)')
+xprint(f'⚙ Download filelist\t{len(DOWNLOAD_FILE_LIST)} item(s)')
 
 # ------------------------------------------------------------------------------------------
 # upload settings
@@ -183,7 +186,7 @@ if not args.uploads: exit(f'uploads folder was not provided!')
 UPLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.uploads ) 
 try: os.makedirs(UPLOAD_FOLDER_PATH, exist_ok=True)
 except: exit(f'uploads folder @ {UPLOAD_FOLDER_PATH} was not found and count not be created')
-xprint(f'Upload Folder: {UPLOAD_FOLDER_PATH}')
+xprint(f'⚙ Upload Folder:\t{UPLOAD_FOLDER_PATH}')
 
 ALLOWED_EXTENSIONS = set([x.strip() for x in args.ext.split(',') if x])  # a set or list of file extensions that are allowed to be uploaded 
 if '' in ALLOWED_EXTENSIONS: ALLOWED_EXTENSIONS.remove('')
@@ -233,14 +236,14 @@ else:
 
 INITIAL_UPLOAD_STATUS = []           # a list of notes to be displayed to the users about uploading files
 if REQUIRED_FILES:
-    INITIAL_UPLOAD_STATUS.append((-1, f'accepted files:\t#[{len(REQUIRED_FILES)}] {REQUIRED_FILES}'))
+    INITIAL_UPLOAD_STATUS.append((-1, f'accepted files [{len(REQUIRED_FILES)}]:\t{REQUIRED_FILES}'))
 else:
-    if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\t#[{len(ALLOWED_EXTENSIONS)}] {ALLOWED_EXTENSIONS}'))
+    if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions [{len(ALLOWED_EXTENSIONS)}]:\t{ALLOWED_EXTENSIONS}'))
     #else:                   INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\tany'))
 INITIAL_UPLOAD_STATUS.append((-1, f'max file-size:\t{mus_display}'))
 if not (MAX_UPLOAD_COUNT is inf): INITIAL_UPLOAD_STATUS.append((-1, f'max file-count:\t{MAX_UPLOAD_COUNT}'))
 
-xprint(f'Upload Settings: {INITIAL_UPLOAD_STATUS}')
+xprint(f'⚙ Upload Settings:\n{INITIAL_UPLOAD_STATUS}')
 # ------------------------------------------------------------------------------------------
 # download settings
 # ------------------------------------------------------------------------------------------
@@ -295,31 +298,31 @@ def login():
         in_passwd = f"{request.form['passwd']}"
         adc_login['requests']+=1 #xprint(f"[.] some trying to login using [ {in_uid} | {in_passwd} ]")
         in_query = in_uid if not args.case else (in_uid.upper() if args.case>0 else in_uid.lower())
-        xprint(f"[.] login attempt by [{in_uid}] will case-query [{in_query}]")
+        xprint(f"◦ login attempt by [{in_uid}] will case-query [{in_query}]")
 
         try:                record = db.query("UID==@in_query")
         except KeyError:    record = None
         if not len(record): record=None
-        xprint(f"[...] record matched? [{record is not None}]")
+        xprint(f"◦ record matched? [{record is not None}]")
         if record is not None: 
             passwd = record['PASS'].values[0]
             named = record['NAME'].values[0]
             uid = record['UID'].values[0]
             admind = record['ADMIN'].values[0]
             #print(f'{passwd=}, {named=}, {uid=}, {admind=}')
-            xprint(f"[....] matched record [{uid}|{named}]")
+            xprint(f"◦ matched record [{uid}|{named}]")
             if pd.isnull(passwd) or passwd=='': # fist login
-                xprint(f"[---------] first login")
+                xprint(f"◦ first login")
                 if in_passwd: # new password provided
                     #xprint(f"[---------] new password provided [{in_passwd}]")
                     if VALIDATE_PASSWORD(in_passwd): # new password is valid
                         #xprint(f"[---------] new password is valid")  
                         record['PASS'].values[0]=in_passwd
                         db.update(record)
-                        xprint(f'[---------] updated record') # \n{record}
+                        xprint(f'◦ updated record') # \n{record}
                         warn = LOGIN_CREATE_TEXT
                         msg = f'[{in_uid}] New password was created successfully'
-                        dprint(f'{named} just joined')
+                        dprint(f'● {named} just joined')
                         adc_login['create']+=1
                                                
                     else: # new password is invalid valid
@@ -334,7 +337,7 @@ def login():
                     msg = f'[{in_uid}] New password required - can use alpha-numeric, underscore and @-symbol'
                                            
             else: # re login
-                xprint(f"[........] revist login")
+                xprint(f"◦ revist login")
                 if in_passwd: # password provided
                     #xprint(f"[........] password provided {in_passwd}")  
                     if in_passwd==passwd:
@@ -345,7 +348,7 @@ def login():
                             os.makedirs(folder_name, exist_ok=True)
                             #xprint(f"..... has directory {folder_name}")
                         except:
-                            xprint(f'[!] Directory could not be created @ {folder_name} :: Force logout user {uid}')
+                            xprint(f'◦ directory could not be created @ {folder_name} :: Force logout user {uid}')
                             session['has_login'] = False
                             session['uid'] = uid
                             session['named'] = named
@@ -357,8 +360,8 @@ def login():
                         session['named'] = named
                         session['admind'] = admind
                         session['filed'] = os.listdir(folder_name)
-                        xprint(f'[........] login Success {uid}|{named}')
-                        dprint(f'{session["named"]} has logged in') 
+                        xprint(f'◦ login success {uid}|{named}')
+                        dprint(f'● {session["named"]} has logged in') 
                         #xprint(f"filed @ login= {session['filed']}")
                         adc_login['success']+=1
                         return redirect(url_for('upload'))
@@ -374,7 +377,7 @@ def login():
                     msg = f'[{in_uid}] Password not provided'
                     adc_login['failed']+=1
         else:
-            xprint(f"[....] unmatched record {in_uid}")
+            xprint(f"◦ unmatched record {in_uid}")
             warn = LOGIN_FAIL_TEXT
             msg = f'[{in_uid}] Not a valid user'
             adc_login['unknown']+=1
@@ -383,7 +386,7 @@ def login():
         if session.get('has_login', False):  return redirect(url_for('upload'))
         
         adc_login['hits']+=1
-        xprint(f"[+] page hit [{adc_login['hits']}]")
+        xprint(f"+ page hit [{adc_login['hits']}]")
         msg = args.welcome
         warn = LOGIN_NEED_TEXT 
         
@@ -392,9 +395,9 @@ def login():
 @app.route('/logout')
 def logout():
     r""" logout a user and redirect to login page """
-    xprint(f"[-] log out user {session['uid']}")
-    if session['has_login']:  dprint(f'{session["named"]} is logging out') 
-    else: dprint(f'{session["named"]} was removed due to invalid uid ({session["uid"]})') 
+    xprint(f"◦ log out user {session['uid']}")
+    if session['has_login']:  dprint(f'● {session["named"]} has logged out') 
+    else: dprint(f'● {session["named"]} was removed due to invalid uid ({session["uid"]})') 
     session['has_login'] = False
     session['uid'] = ""
     session['named'] = ""
@@ -422,15 +425,15 @@ def download(req_path):
     abs_path = os.path.join(app.config['downloads'], req_path) # Joining the base and the requested path
     global adc_downloads, DOWNLOAD_FILE_LIST
     if req_path:
-        xprint(f"[_] {session['uid']} trying to download {req_path}")
+        xprint(f"◦ {session['uid']} trying to download {req_path}")
         adc_downloads['requests']+=1
     if not os.path.exists(abs_path): 
-        xprint(f" ... requested file was not found")
+        xprint(f"◦ requested file was not found")
         adc_downloads['failed']+=1
         return abort(404) # Return 404 if path doesn't exist
     if os.path.isfile(abs_path): 
-        xprint(f" ... sending file ")
-        dprint(f'{session["named"]} just downloaded the file {req_path}')
+        xprint(f"◦ sending file ")
+        dprint(f'● {session["named"]} just downloaded the file {req_path}')
         adc_downloads['success']+=1
         return send_file(abs_path) # Check if path is a file and serve
     return render_template(TEMPLATE_DOWNLOAD, filelist = DOWNLOAD_FILE_LIST, heading=args.topic)
@@ -457,7 +460,7 @@ def upload():
         
         global adc_uploads
         adc_uploads['requests']+=len(form.file.data)
-        xprint(f"user {session['uid']} is trying to upload {len(form.file.data)} items.")
+        xprint(f"◦ user {session['uid']} is trying to upload {len(form.file.data)} items.")
         result = []
         n_success = 0
         #---------------------------------------------------------------------------------
@@ -466,7 +469,7 @@ def upload():
             #xprint(f"[...........] {file.filename} {sf}")
         #---------------------------------------------------------------------------------
             if not VALIDATE_FILENAME(sf):
-                why_failed =  f"❌ File not accepted [{sf}] " if REQUIRED_FILES else f"❌ Extension is invalid [{sf}] "
+                why_failed =  f"✗ File not accepted [{sf}] " if REQUIRED_FILES else f"✗ Extension is invalid [{sf}] "
                 result.append((0, why_failed))
                 adc_uploads['failed']+=1
                 continue
@@ -475,14 +478,14 @@ def upload():
             if not os.path.exists(file_name):
                 #file_list = os.listdir(folder_name)
                 if len(session['filed'])>=MAX_UPLOAD_COUNT:
-                    why_failed = f"❌ Upload limit reached [{sf}] "
+                    why_failed = f"✗ Upload limit reached [{sf}] "
                     result.append((0, why_failed))
                     adc_uploads['failed']+=1
                     continue
 
 
             file.save(file_name) 
-            why_failed = f"✔ Uploaded new file [{sf}] "
+            why_failed = f"✓ Uploaded new file [{sf}] "
             result.append((1, why_failed))
             adc_uploads['success']+=1
             n_success+=1
@@ -490,8 +493,8 @@ def upload():
 
         #---------------------------------------------------------------------------------
         
-        xprint(f"upload results: \n{result}")
-        dprint(f'{session["named"]} just uploaded {n_success} file(s)') 
+        xprint(f"◦ upload results: \n{result}")
+        dprint(f'● {session["named"]} just uploaded {n_success} file(s)') 
         file_list = session['filed'] #os.listdir(folder_name)
         msg = f'You have uploaded {len(file_list)} file(s)'  
         return render_template(TEMPLATE_UPLOAD, form=form, msg=msg, heading=args.topic, filelist=file_list, status=result, admin = not pd.isnull(session['admind']))
@@ -526,8 +529,8 @@ def purge():
     if os.path.exists(folder_name):
         file_list = os.listdir(folder_name)
         for f in file_list: os.remove(os.path.join(folder_name, f))
-        xprint(f"{session['uid']} has purged their files.")
-        dprint(f'{session["named"]} used purge')
+        xprint(f"◦ {session['uid']} has purged their files.")
+        dprint(f'● {session["named"]} used purge')
         session['filed']=[]
         #dprint(f"filed @ purge= {session['filed']}")
         global adc_purged
@@ -540,7 +543,7 @@ def purge():
 # ------------------------------------------------------------------------------------------
 # administrative
 # ------------------------------------------------------------------------------------------
-FAILED_ADMIN_MSG = "❌ This action requires admin privilege"
+FAILED_ADMIN_MSG = "This action requires admin privilege"
 @app.route('/ref', methods =['GET']) 
 def refresh_dll():
     r""" refreshes the  DOWNLOAD_FILE_LIST"""
@@ -548,8 +551,8 @@ def refresh_dll():
     if not pd.isnull(session['admind']): 
         global DOWNLOAD_FILE_LIST, GET_DOWNLOAD_FILE_LIST
         DOWNLOAD_FILE_LIST = GET_DOWNLOAD_FILE_LIST()
-        dprint(f"[@] {session['uid']} just refreshed the download list.")
-        STATUS, SUCCESS =  "✔ download-list was refreshed", True
+        dprint(f"▶ {session['uid']} just refreshed the download list.")
+        STATUS, SUCCESS =  "Update download-list", True
     else: STATUS, SUCCESS =  FAILED_ADMIN_MSG, False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN, heading=args.topic, status=STATUS, success=SUCCESS)
@@ -560,9 +563,9 @@ def persist_db():
     if not pd.isnull(session['admind']): 
         global db, write_db_to_disk
         if write_db_to_disk(db):
-            dprint(f"[@] {session['uid']} just persisted the db to disk.")
-            STATUS, SUCCESS = "✔ db written to disk", True
-        else: STATUS, SUCCESS =  f"❌ {args.login} might be open, close it first.", False
+            dprint(f"▶ {session['uid']} just persisted the db to disk.")
+            STATUS, SUCCESS = "Persisted db to disk", True
+        else: STATUS, SUCCESS =  f"Write error '{args.login}' might be open", False
     else: STATUS, SUCCESS =  FAILED_ADMIN_MSG, False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN, heading=args.topic, status=STATUS, success=SUCCESS)
@@ -573,8 +576,8 @@ def reload_db():
     if not pd.isnull(session['admind']): 
         global db, read_db_from_disk
         db = read_db_from_disk()
-        dprint(f"[@] {session['uid']} just reloaded the db from disk.")
-        STATUS, SUCCESS = "✔ db reloaded from disk", True
+        dprint(f"▶ {session['uid']} just reloaded the db from disk.")
+        STATUS, SUCCESS = "Reloaded db from disk", True
     else: STATUS, SUCCESS = FAILED_ADMIN_MSG, False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN, heading=args.topic, status=STATUS, success=SUCCESS)
@@ -584,8 +587,8 @@ def adminpage():
     r""" opens admin page """ 
     if not session.get('has_login', False): return redirect(url_for('login'))
     TEMPLATE_ADMIN = 'admin.html'
-    if not pd.isnull(session['admind']): return render_template(TEMPLATE_ADMIN, heading=args.topic, status="✔ You are an Admin", success=True)
-    else: return render_template(TEMPLATE_ADMIN, heading=args.topic, status="❌ You are not an Admin", success=False)
+    if not pd.isnull(session['admind']): return render_template(TEMPLATE_ADMIN, heading=args.topic, status="You are an Admin", success=True)
+    else: return render_template(TEMPLATE_ADMIN, heading=args.topic, status="You are not an Admin", success=False)
 
 
 #%% [5]
@@ -596,23 +599,24 @@ def adminpage():
 # ======================================================================================================
 HOST_IP =           args.host if args.host else '0.0.0.0'           # use "0.0.0.0" to listen on all interfaces
 HOST_PORT =         args.port                                       # use 8080 by default
-xprint(f'Server: {HOST_INFO} ~ {HOST_IP}:{HOST_PORT}')
+xprint(f'● server: {HOST_INFO} ~ {HOST_IP}:{HOST_PORT}')
 octates = [ bool(int(x)) for x in HOST_IP.split('.') ]
 display_HOST_IP = HOST_IP if True in octates else "localhost"
-dprint(f'running topics version: {__version__}')
-dprint(f'starting server @ {HOST_IP}:{HOST_PORT} visit http://{display_HOST_IP}:{HOST_PORT}')
+dprint(f'◉ running topics version: {__version__}')
+dprint(f'◉ starting server @ {HOST_IP}:{HOST_PORT}')
 #dprint(f'starting server @ {HOST_IP}:{HOST_PORT} \n\thttp://{display_HOST_IP}:{HOST_PORT}\n\thttp://{display_HOST_IP}:{HOST_PORT}/ref\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbr\n\thttp://{display_HOST_IP}:{HOST_PORT}/dbw')
 start_time = now()
+print(f'visit http://{display_HOST_IP}:{HOST_PORT}')
 serve(app, host=HOST_IP, port=HOST_PORT, max_request_body_size=MAX_UPLOAD_SIZE) 
 # start serving app at this ip --> to stop app - use ctrl+c
 stop_time = now()
-dprint(f'stopping server...')
+dprint(f'◉ stopping server...')
 while not write_db_to_disk(db):
-    t = input('Press Enter to try again')
+    t = input('~ Press Enter to try again')
     if t: 
-        dprint(f'could not persist db to {LOGIN_XL_PATH}')
+        dprint(f'! could not persist db to {LOGIN_XL_PATH}')
         break
-dprint('done! total up-time was {}'.format(stop_time-start_time))
+dprint('◉ done! total up-time was {}'.format(stop_time-start_time))
 
 # ======================================================================================================    
 # ======================================================================================================
@@ -620,30 +624,58 @@ dprint('done! total up-time was {}'.format(stop_time-start_time))
 # ======================================================================================================
 # ======================================================================================================
 
-print(f"""
-ADC stats:
----------------------------------------
-Logins
----------------------------------------
-{adc_login}
----------------------------------------
-Downloads
----------------------------------------
-{adc_downloads}
----------------------------------------
-Uploads
----------------------------------------
-{adc_uploads}
----------------------------------------
-Purges
----------------------------------------
-{adc_purged}
----------------------------------------
-""")
+
+# ======================================================================================================
+# ADC data
+# ======================================================================================================
+if args.adc: 
+    ADC_DIR = os.path.join(BASEDIR, args.adc)
+    try: 
+        os.makedirs(ADC_DIR, exist_ok=True)
+        fid = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S%f")
+        ADC_FILE = os.path.join(ADC_DIR, f'{fid}.json')
+        import json
+        o = dict(   
+                    start_time=datetime.datetime.strftime(start_time, "%Y_%m_%d__%H_%M_%S__%f"),
+                    stop_time=datetime.datetime.strftime(stop_time, "%Y_%m_%d__%H_%M_%S__%f"),
+                    adc_login=adc_login, 
+                    adc_downloads=adc_downloads, 
+                    adc_uploads=adc_uploads, 
+                    adc_purged=adc_purged,
+        )
+        with open(ADC_FILE, 'w') as f: json.dump(o, f, indent=4)
+        xprint(f'⇒ Success writing ADC data at {ADC_DIR}/{ADC_FILE}')
+    except:  xprint(f'⇒ Failed to write ADC data at {ADC_DIR}')
+else: xprint(f'⇒ Skip writing ADC data')
+
+print(f'◉ To report issues please visit [topics] at github: https://github.com/NelsonSharma/topics')
+print(f'Finished!')
 # ------------------------------------------------------------------------------------------
 #%% [6]
 # ------------------------------------------------------------------------------------------
+# uncomment below to display adc on screen
+# print(f"""
+# ADC stats:
+# ---------------------------------------
+# Logins
+# ---------------------------------------
+# {adc_login}
+# ---------------------------------------
+# Downloads
+# ---------------------------------------
+# {adc_downloads}
+# ---------------------------------------
+# Uploads
+# ---------------------------------------
+# {adc_uploads}
+# ---------------------------------------
+# Purges
+# ---------------------------------------
+# {adc_purged}
+# ---------------------------------------
+# """)
 """ FOOTNOTE 
 
 """
+
 # ------------------------------------------------------------------------------------------
