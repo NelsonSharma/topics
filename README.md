@@ -6,46 +6,56 @@ Flask-based web app for sharing files
 
 ## setup *topics* to run on your machine
 
-### [0] clone repo and cd into it
+Only the `topics.py` file is required to run the app. Optionally, the `requirements.txt` file provides the required packages.
+
+### ✔ clone repo or download script
 
 ```bash
 git clone https://github.com/NelsonSharma/topics.git
+```
+
+(or just download `topics.py`) and cd into the directory
+
+```bash
 cd topics
 ```
 
-### [1] create a virtual environment
+### ✔ (optional) create a virtual environment
 
 ```bash
 python -m venv .venv
+```
+
+```bash
 source .venv/bin/activate
 ```
 
-### [2] install required packages
+### ✔ install required packages
 
 ```bash
 python -m pip install pandas openpyxl Flask Flask-WTF waitress
 ```
 
-or use
+or use the provided `requirements.txt` file
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-### [3] start the app
+### ✔ start the app
 
-start the app server by launching `app.py`
+start the app server by launching `topics.py`
 
 ```bash
-python app.py 
+python topics.py 
 ```
 
-use ctrl+c to stop the server
+use `ctrl+c` to stop the server
 
-### [4] (optional) start with extra arguments
+### ✔ (optional) start with extra arguments
 
-```cmd
-python app.py --base="./__my base__" --secret="my secret.txt" --login="my login.xlsx" --rename=1 --topic="my topic" --emoji="🧡" --welcome="my greetings"  --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --required="" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --adc="my adc" --verbose=3
+```bash
+python topics.py --base="./__my base__" --secret="my secret.txt" --login="my login.xlsx" --rename=1 --topic="my topic" --emoji="🧡" --welcome="my greetings"  --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --required="" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --threads=1 --verbose=3
 ```
 
 Description of Arguments
@@ -53,14 +63,15 @@ Description of Arguments
 ```python
 
 --config
-# the name of function in config.py that returns a configuration dict
+# the name of function in Configs class  that returns a configuration dict
 # when specified, it will ignore all other arguments
 # instead all arguments are built from the configuration dict that is returned
-# default is empty-string which means not using config.py - use args instead
+# default is empty-string which means not using config - use args instead
 
 --base
 # the base directory to server files
-# default is the same directory as the __file__
+# it contains '__uploads__', '__downloads__', __login__.xlsx', '__secret__.txt'
+# default is empty-string which means the same directory as the os.path.abspath(__file__)
 
 --secret
 # the file containing app secret key
@@ -107,17 +118,17 @@ Description of Arguments
 # default is [0] which means no-limit
 
 --maxupsize     
-# max file-size (in MB) that can be uploaded 
+# max file-size (can be in KB, MB, GB or TB) that can be uploaded 
 # (actually represent the `max_request_body_size` argument in `waitress.serve`)
-# default is [0] which means 1 TB
+# default is '1GB' which means 2**30 Bytes
 
 --port          
 # port of server ip-endpoint 
-# default is 8080
+# default is '8080'
 
 --host          
 # address of server ip-endpoint 
-# default is empty-string which means use all interfaces
+# default is '0.0.0.0' which means use all interfaces
 
 --uploads       
 # name of folder used to store uploaded files
@@ -127,14 +138,14 @@ Description of Arguments
 # name of the folder used to serve files as resources
 # default is "__downloads__"
 
---adc       
-# analytical data collection directory
-# data related to each server run is stored in json format in this dir
-# default is '__adc__'
+--threads       
+# no of threads to be used by waitress.serve
+# to be absolutely thread-safe, use a single thread
+# default is 4 threads
 
 --verbose       
 # verbose level 
-# (0=silent) (1=events) (2=events+time) (3=detailed+time) 
+# (0=silent) (1=events) (2=events+time)
 # default is [0]
 
 ```
@@ -159,8 +170,9 @@ Otherwise, the login might fail since uids are case sensitive i.e., `--case=0` b
 
 ## note on login databse
 
-Login databse is an excel (.xlsx) file.
-At server start-up, login file is read once and stored into an in-memory dataframe called login-db ( the `db` variable in `app.py`)
+Login databse is an excel file (`__login__.xlsx` by default).
+
+At server start-up, login file is read once and stored into an in-memory dataframe called login-db ( the `db` variable in `topics.py`)
 
 Login file contains a "login" sheet that has 4 columns -> [ `ADMIN`  `UID`  `NAME`  `PASS` ]
 
