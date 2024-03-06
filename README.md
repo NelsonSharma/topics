@@ -225,8 +225,7 @@ Login file contains a "login" sheet that has 4 columns -> [ `ADMIN`  `UID`  `NAM
 
 ---
 
-> *topics* verision: 2.3.24
->
+> *topics*
 > author: `mail.nelsonsharma@gmail.com`
 
 ---
