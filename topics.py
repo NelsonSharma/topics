@@ -1037,7 +1037,7 @@ def SERVE(webapp, host, port, url, threads, max_connect, max_body, **kwargs):
     start_time = datetime.datetime.now()
     print('◉ start server @ {}'.format(start_time))
     endpoint = f'{host}:{port}' if host!='0.0.0.0' else f'localhost:{port}'
-    print(f'{url.lower()}://{endpoint}')
+    print(f'▶ {url.lower()}://{endpoint}')
     serve(webapp, # https://docs.pylonsproject.org/projects/waitress/en/stable/runner.html
         host = host,          
         port = port,          
@@ -1049,9 +1049,11 @@ def SERVE(webapp, host, port, url, threads, max_connect, max_body, **kwargs):
     stop_time = datetime.datetime.now()
     run_time = stop_time-start_time
     print('◉ stop server @ {}'.format(stop_time))
-    print('◉ done! total up-time was {}'.format(run_time))
+    print('◉ total up-time was {}'.format(run_time))
     return
 
+#%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+print(f'Starting...')
 #%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SERVE(
     webapp=     app,
@@ -1066,14 +1068,12 @@ SERVE(
 while not write_db_to_disk(db):
     t = input('Persist error ~ Press Enter to try again')
     if t: 
-        print(f'! could not persist db to {LOGIN_XL_PATH}')
+        dprint(f'! could not persist db to {LOGIN_XL_PATH}')
         break
 try:
     for k,v in HTML_TEMPLATES.items(): os.remove(os.path.join(TEMPLATES_DIR, f"{k}.html"))
     for k,v in CSS_TEMPLATES.items(): os.remove(os.path.join(STATIC_DIR, f"{k}.css"))
     os.removedirs(TEMPLATES_DIR), os.removedirs(STATIC_DIR)
-except: print(f'could not remove html at {TEMPLATES_DIR} or {STATIC_DIR}')
+except: dprint(f'could not remove html at {TEMPLATES_DIR} or {STATIC_DIR}')
 #%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-print(f'◉ To report issues please visit [topics] at github: https://github.com/NelsonSharma/topics')
 print(f'Finished!')
