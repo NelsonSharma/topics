@@ -159,7 +159,7 @@ login = """
     <!-- ---------------------------------------------------------->
     
     <div align="center">
-    <div><span style="font-size: xx-large;">💻</span><br><span class="info_login">{{ config.hostinfo }}</span></div>
+    <div><span style="font-size: xx-large;">{{ config.emoji }}</span><br><span class="info_login">{{ config.hostinfo }}</span></div>
     <div style="font-size:large">📤 <a href="https://github.com/NelsonSharma/topics" class="github_info"><i>topics</i> ● GitHub</a> 📥</div>
     <br>
     </div>
