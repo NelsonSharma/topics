@@ -54,6 +54,14 @@ use `ctrl+c` to stop the server
 
 ### ✔ (optional) start with extra arguments
 
+using in-built `Configs` class
+
+```bash
+python topics.py --config=default
+```
+
+using arguments
+
 ```bash
 python topics.py --base="./__my base__" --secret="my secret.txt" --login="my login.xlsx" --rename=1 --topic="my topic" --emoji="🧡" --welcome="my greetings"  --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --required="" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --threads=1 --verbose=3
 ```
