@@ -54,7 +54,7 @@ use `ctrl+c` to stop the server
 
 ### ✔ (optional) start with extra arguments
 
-using in-built `Configs` class
+using in-built `configs` class
 
 ```bash
 python topics.py --config=default
