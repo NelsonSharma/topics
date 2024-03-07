@@ -297,11 +297,11 @@ upload="""
             {{form.submit()}}
         </form>
         <br>
-        <div class="files_status">{{ msg }}</div>
+        <div class="files_status">You have uploaded {{ len(session.filed) }} file(s)</div>
         <br>
         <div class="files_list_up">
             <ol>
-            {% for f in filelist %}
+            {% for f in session.filed %}
             <li>{{ f }}</li>
             {% endfor %}
             </ol>
@@ -972,15 +972,12 @@ def upload():
         #---------------------------------------------------------------------------------
         
         #print(f"◦ upload results: \n{result}")
-        dprint(f'● {session["uid"]}.{session["named"]} just uploaded {n_success} file(s)') 
-        file_list = session['filed'] #os.listdir(folder_name)
-        msg = f'You have uploaded {len(file_list)} file(s)'  
-        return render_template(TEMPLATE_UPLOAD, form=form, msg=msg,  filelist=file_list, status=result)
+        result_show = ''.join([f'{r}\n' for r in result])
+        dprint(f'● {session["uid"]}.{session["named"]} just uploaded {n_success} file(s)\n{result_show}') 
+        return render_template(TEMPLATE_UPLOAD, form=form, status=result)
         
-    file_list = session['filed'] #os.listdir(folder_name)
-    #dprint(f"filed @ get-upload = {session['filed']}")
-    msg = f'You have uploaded {len(file_list)} file(s)'  
-    return render_template(TEMPLATE_UPLOAD, form=form, msg=msg,  filelist=file_list, status=INITIAL_UPLOAD_STATUS)
+    #file_list = session['filed'] #os.listdir(folder_name)
+    return render_template(TEMPLATE_UPLOAD, form=form, status=INITIAL_UPLOAD_STATUS)
 # ------------------------------------------------------------------------------------------
 
 @app.route('/uploadf', methods =['GET'])
