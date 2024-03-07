@@ -223,6 +223,8 @@ download = """
         <a href="{{ url_for('download') }}" class="btn_refresh">Refresh</a>
         <br>
         <br>
+        <div class="files_status">Downloads</div>
+        <br>
         <div class="files_list_down">
             <ol>
             {% for file in config.dfl %}
@@ -297,7 +299,7 @@ upload="""
             {{form.submit()}}
         </form>
         <br>
-        <div class="files_status">You have uploaded {{ len(session.filed) }} file(s)</div>
+        <div class="files_status">Uploads</div>
         <br>
         <div class="files_list_up">
             <ol>
