@@ -4,18 +4,21 @@ topics - Flask-based web app for sharing files
 
 git clone https://github.com/NelsonSharma/topics.git
 cd topics
-
 python -m venv .venv
 source .venv/bin/activate
-
 python -m pip install pandas openpyxl Flask Flask-WTF waitress
 python -m pip install -r requirements.txt
 
 python topics.py 
-
 python topics.py --config=default
-
 python topics.py --base="./__my base__" --secret="my secret.txt" --login="my login.xlsx" --rename=1 --topic="my topic" --emoji="🧡" --welcome="my greetings"  --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --required="" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --threads=1 --verbose=3
+
+# NOTE: to achive full thread safety, use `--threads=1`
+# ... however its not absolutely nessesary
+# ... only two places where threads may try to write to global variables
+# ... (first) is to update user's record with new passwords set by users (calls `db.update()`) 
+# ... ... however, when user's are uploading, threads do not write to global variables
+# ... (second) is updating download-list and login-db by admins - this is rare and infrequent
 
 https://github.com/NelsonSharma/topics
 Author: Nelson.S
