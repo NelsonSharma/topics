@@ -47,7 +47,7 @@ class configs:
         'case'        : 0					    ,
         'ext'         : ''					    ,
         'required'    : ''					    ,
-        'maxupcount'  : 0					    ,
+        'maxupcount'  : -1					    ,
         'maxupsize'   : '1GB'					,
         'maxconnect'  : 100                     ,
         'port'        : '8080'				    ,
@@ -293,6 +293,7 @@ upload="""
             </ol>
         </div>
         <br>
+        {% if config.muc!=0 %}
         <form method='POST' enctype='multipart/form-data'>
             {{form.hidden_tag()}}
             {{form.file()}}
@@ -310,7 +311,7 @@ upload="""
         </div>
         <br>
         <br>
-
+        {% endif %}
     </div>
 			
     <!-- ---------------------------------------------------------->
@@ -718,7 +719,7 @@ def str2bytes(size):
     return int(float(size[:-2])*sizes.get(size[-2:].upper(), 0))
     
 MAX_UPLOAD_SIZE = str2bytes(args.maxupsize)     # maximum upload file size 
-MAX_UPLOAD_COUNT = abs(args.maxupcount) if args.maxupcount else inf        # maximum number of files that can be uploaded by one user
+MAX_UPLOAD_COUNT = ( inf if args.maxupcount<0 else args.maxupcount )       # maximum number of files that can be uploaded by one user
 # find max upload size in appropiate units
 mus_kb = MAX_UPLOAD_SIZE/(2**10)
 if len(f'{int(mus_kb)}') < 4:
@@ -735,14 +736,15 @@ else:
             mus_tb = MAX_UPLOAD_SIZE/(2**40)
             mus_display = f'{mus_tb:.2f} TB'
 
+
 INITIAL_UPLOAD_STATUS = []           # a list of notes to be displayed to the users about uploading files
 if REQUIRED_FILES:
     INITIAL_UPLOAD_STATUS.append((-1, f'accepted files [{len(REQUIRED_FILES)}]:\t{REQUIRED_FILES}'))
 else:
     if ALLOWED_EXTENSIONS:  INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions [{len(ALLOWED_EXTENSIONS)}]:\t{ALLOWED_EXTENSIONS}'))
     #else:                   INITIAL_UPLOAD_STATUS.append((-1, f'allowed extensions:\tany'))
-INITIAL_UPLOAD_STATUS.append((-1, f'max file-size:\t{mus_display}'))
-if not (MAX_UPLOAD_COUNT is inf): INITIAL_UPLOAD_STATUS.append((-1, f'max file-count:\t{MAX_UPLOAD_COUNT}'))
+INITIAL_UPLOAD_STATUS.append((-1, f'max upload size:\t{mus_display}'))
+if not (MAX_UPLOAD_COUNT is inf): INITIAL_UPLOAD_STATUS.append((-1, f'max upload count:\t{MAX_UPLOAD_COUNT}'))
 
 dprint(f'⚙ Upload Settings:\n{INITIAL_UPLOAD_STATUS}')
 # ------------------------------------------------------------------------------------------
@@ -772,6 +774,7 @@ app.config['topic'] =     args.topic
 app.config['hostinfo'] =  HOST_INFO
 app.config['dfl'] = DOWNLOAD_FILE_LIST
 app.config['rename'] = bool(args.rename)
+app.config['muc'] = MAX_UPLOAD_COUNT
 class UploadFileForm(FlaskForm): # The upload form using FlaskForm
     file = MultipleFileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
@@ -944,42 +947,45 @@ def upload():
 
     if form.validate_on_submit():
         dprint(f"◦ user {session['uid']} is trying to upload {len(form.file.data)} items.")
-        result = []
-        n_success = 0
-        #---------------------------------------------------------------------------------
-        for file in form.file.data:
-            isvalid, sf = VALIDATE_FILENAME(secure_filename(file.filename))
-            #print(f"[...........] {file.filename} {sf}")
-        #---------------------------------------------------------------------------------
-            
-            if not isvalid:
-                why_failed =  f"✗ File not accepted [{sf}] " if REQUIRED_FILES else f"✗ Extension is invalid [{sf}] "
-                result.append((0, why_failed))
-                continue
-
-            file_name = os.path.join(folder_name, sf)
-            if not os.path.exists(file_name):
-                #file_list = os.listdir(folder_name)
-                if len(session['filed'])>=MAX_UPLOAD_COUNT:
-                    why_failed = f"✗ Upload limit reached [{sf}] "
+        if app.config['muc']==0: 
+            return render_template(TEMPLATE_UPLOAD, form=form, status=[(0, f'✗ Uploads are disabled')])
+        else:
+            result = []
+            n_success = 0
+            #---------------------------------------------------------------------------------
+            for file in form.file.data:
+                isvalid, sf = VALIDATE_FILENAME(secure_filename(file.filename))
+                #print(f"[...........] {file.filename} {sf}")
+            #---------------------------------------------------------------------------------
+                
+                if not isvalid:
+                    why_failed =  f"✗ File not accepted [{sf}] " if REQUIRED_FILES else f"✗ Extension is invalid [{sf}] "
                     result.append((0, why_failed))
                     continue
 
-            file.save(file_name) 
-            why_failed = f"✓ Uploaded new file [{sf}] "
-            result.append((1, why_failed))
-            n_success+=1
-            if sf not in session['filed']: session['filed'] = session['filed'] + [sf]
+                file_name = os.path.join(folder_name, sf)
+                if not os.path.exists(file_name):
+                    #file_list = os.listdir(folder_name)
+                    if len(session['filed'])>=app.config['muc']:
+                        why_failed = f"✗ Upload limit reached [{sf}] "
+                        result.append((0, why_failed))
+                        continue
+
+                file.save(file_name) 
+                why_failed = f"✓ Uploaded new file [{sf}] "
+                result.append((1, why_failed))
+                n_success+=1
+                if sf not in session['filed']: session['filed'] = session['filed'] + [sf]
 
         #---------------------------------------------------------------------------------
-        
-        #print(f"◦ upload results: \n{result}")
-        result_show = ''.join([f'{r}\n' for r in result])
-        dprint(f'● {session["uid"]}.{session["named"]} just uploaded {n_success} file(s)\n{result_show}') 
-        return render_template(TEMPLATE_UPLOAD, form=form, status=result)
+            
+            #print(f"◦ upload results: \n{result}")
+            result_show = ''.join([f'{r}\n' for r in result])
+            dprint(f'● {session["uid"]}.{session["named"]} just uploaded {n_success} file(s)\n{result_show}') 
+            return render_template(TEMPLATE_UPLOAD, form=form, status=result)
         
     #file_list = session['filed'] #os.listdir(folder_name)
-    return render_template(TEMPLATE_UPLOAD, form=form, status=INITIAL_UPLOAD_STATUS)
+    return render_template(TEMPLATE_UPLOAD, form=form, status=(INITIAL_UPLOAD_STATUS if app.config['muc']!=0 else [(-1, f'Uploads are disabled')]))
 # ------------------------------------------------------------------------------------------
 
 @app.route('/uploadf', methods =['GET'])

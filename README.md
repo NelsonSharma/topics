@@ -71,18 +71,20 @@ Description of Arguments
 ```python
 
 --config
-# the name of function in Configs class  that returns a configuration dict
+# the name of function in 'configs' class that returns a configuration dict
 # when specified, it will ignore all other arguments
-# instead all arguments are built from the configuration dict that is returned
+# instead, all arguments will be built from the configuration dict that is returned
 # default is empty-string which means not using config - use args instead
+# 'configs' are just functions that take no args and return a configuration dict
 # NOTE: custom configs can be created by copying the 'default' config function in the 'configs' class 
-# ... in such a case, the config arg should be provided as --config=custom_config_function
-# NOTE: if config is provided with the dot (.) character like --config=abc.xyz
-# ... then the function 'xyz' will be called from local module 'abc' (possibly defined in 'abc.py')
-# ... this is useful in storing custom configs seperate from application
+# ... when creating a custom config named 'my_config' for e.g.
+# ... the config arg should be provided as python topics.py --config=my_config
+# NOTE: if config is provided with the dot (.) character like --config=xyz.my_config
+# ... then the function 'my_config' will be called from local module 'xyz' (possibly defined in 'xyz.py')
+# ... this is useful in storing custom configs seperate from application  
 
 --base
-# the base directory to server files
+# the base directory at the server
 # it contains '__uploads__', '__downloads__', __login__.xlsx', '__secret__.txt'
 # default is empty-string which means the same directory as the os.path.abspath(__file__)
 
@@ -92,13 +94,13 @@ Description of Arguments
 # default is "__secret__.txt"
 
 --login         
-# name of login database file - an Excel file stored in the current dir 
+# name of login database file - an Excel file
 # default is "__login__.xlsx" (will auto-create if not found)
 
 --rename
 # if true (1), displays the "update-name" field on login page
 # users can update their name using this field
-# default is false(0)
+# default is false (0)
 
 --topic         
 # name of the topic - this is displayed as the main heading at the top of all pages
@@ -123,12 +125,13 @@ Description of Arguments
 
 --required
 # allowed file names that can be uploaded (expects a CSV-string)
-# these are specific filenames and will override --ext
+# these are specific filenames and will override the "--ext" argument
 # default is empty-string which means no-requirement
 
 --maxupcount    
 # max no. of files that a user can upload
-# default is [0] which means no-limit
+# set to [0] to disable uploads
+# default is [-1] which means no-limit
 
 --maxupsize     
 # max file-size (can be in KB, MB, GB or TB) that can be uploaded 
