@@ -33,7 +33,7 @@ source .venv/bin/activate
 ### ✔ install required packages
 
 ```bash
-python -m pip install pandas openpyxl Flask Flask-WTF waitress
+python -m pip install pandas openpyxl Flask Flask-WTF waitress nbconvert IPython
 ```
 
 or use the provided `requirements.txt` file
@@ -153,6 +153,11 @@ Description of Arguments
 --downloads     
 # name of the folder used to serve files as resources
 # default is "__downloads__"
+
+--board
+# an ipynb file (jupyter notebook) that is embedded in html (uses nbconvert)
+# default file will not be created if not found
+# admins must refresh boards if changes are made
 
 --threads       
 # no of threads to be used by waitress.serve

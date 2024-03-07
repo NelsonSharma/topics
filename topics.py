@@ -6,13 +6,13 @@ git clone https://github.com/NelsonSharma/topics.git
 cd topics
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install pandas openpyxl Flask Flask-WTF waitress
+python -m pip install pandas openpyxl Flask Flask-WTF waitress nbconvert IPython
 python -m pip install -r requirements.txt
 
 python topics.py 
 python topics.py --config=default
-python topics.py --base="./__my base__" --secret="my secret.txt" --login="my login.xlsx" --rename=1 --topic="my topic" --emoji="🧡" --welcome="my greetings"  --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --required="" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --threads=1 --verbose=3
 
+# NOTE: not using app.context, use app.config dict directly
 # NOTE: to achive full thread safety, use `--threads=1`
 # ... however its not absolutely nessesary
 # ... only two places where threads may try to write to global variables
@@ -54,8 +54,9 @@ class configs:
         'host'        : '0.0.0.0'			    ,
         'uploads'     : '__uploads__'		    ,
         'downloads'   : '__downloads__'		    ,
+        'board'       : ''                      ,
         'threads'     : 4			            ,
-        'verbose'     : 0					    ,
+        'verbose'     : 2					    ,
         }
 
 #%% basic imports
@@ -99,6 +100,7 @@ if args.config: # override everything
         if not hasattr(args, k): exit(f'[!] config is missing attribute ({k})')
 # ******************************************************************************************
 HTML_TEMPLATES = dict(
+board="""""",
 # ******************************************************************************************
 admin = """
 <html>
@@ -138,7 +140,9 @@ admin = """
         <a href="{{ url_for('refresh_dll') }}" class="btn_admin">⚙ Update download-list ▤</a>
         <br>
         <br>
-
+        <a href="{{ url_for('refresh_board') }}" class="btn_admin">⚙ Refresh board ▣</a>
+        <br>
+        <br>
     </div>
 			
     <!-- ---------------------------------------------------------->
@@ -194,7 +198,7 @@ login = """
     
     <div align="center">
     <div><span style="font-size: xx-large;">{{ config.emoji }}</span><br><span class="info_login">{{ config.hostinfo }}</span></div>
-    <div style="font-size:large">📤 <a href="https://github.com/NelsonSharma/topics" class="github_info"><i>topics</i> ● GitHub</a> 📥</div>
+    <div style="font-size:large">📤 <a href="https://github.com/NelsonSharma/topics" class="github_info" target="_blank"><i>topics</i> ● GitHub</a> 📥</div>
     <br>
     </div>
     <!-- ---------------------------------------------------------->
@@ -272,6 +276,9 @@ upload="""
                     }
                 }
             </script>
+        {% if config.board %}
+        <a href="{{ url_for('board') }}" class="btn_board" target="_blank">Board</a>
+        {% endif %}
         {% if session.admind %}
         <a href="{{ url_for('adminpage') }}" class="btn_admin">⚙</a>
         {% endif %}
@@ -522,6 +529,18 @@ style = """
     text-decoration: none;
 }
 
+.btn_board {
+    padding: 2px 10px;
+    background-color: #801abb; 
+    border-style: none;
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+
 
 .admin_mid{
     color: #000000; 
@@ -659,7 +678,7 @@ def VALIDATE_PASSWORD(password):   # a function that can validate the password -
 if not args.downloads: exit(f'[!] downloads folder was not provided!')
 DOWNLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.downloads) 
 try: os.makedirs(DOWNLOAD_FOLDER_PATH, exist_ok=True)
-except: exit(f'[!] downloads folder @ {DOWNLOAD_FOLDER_PATH} was not found and count not be created')
+except: exit(f'[!] downloads folder @ {DOWNLOAD_FOLDER_PATH} was not found and could not be created')
 dprint(f'⚙ Download Folder:\t{DOWNLOAD_FOLDER_PATH}')
 def GET_DOWNLOAD_FILE_LIST (): 
     dlist = []
@@ -677,7 +696,7 @@ dprint(f'⚙ Download filelist\t{len(DOWNLOAD_FILE_LIST)} item(s)')
 if not args.uploads: exit(f'[!] uploads folder was not provided!')
 UPLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.uploads ) 
 try: os.makedirs(UPLOAD_FOLDER_PATH, exist_ok=True)
-except: exit(f'[!] uploads folder @ {UPLOAD_FOLDER_PATH} was not found and count not be created')
+except: exit(f'[!] uploads folder @ {UPLOAD_FOLDER_PATH} was not found and could not be created')
 dprint(f'⚙ Upload Folder:\t{UPLOAD_FOLDER_PATH}')
 
 
@@ -749,10 +768,34 @@ if not (MAX_UPLOAD_COUNT is inf): INITIAL_UPLOAD_STATUS.append((-1, f'max upload
 dprint(f'⚙ Upload Settings:\n{INITIAL_UPLOAD_STATUS}')
 # ------------------------------------------------------------------------------------------
 # download settings
+from nbconvert import HTMLExporter
 # ------------------------------------------------------------------------------------------
+#BOARD_FILE_HTML = os.path.join(TEMPLATES_DIR, f"board.html") #os.path.join(BASEDIR,  'templates', f'board.html')
+BOARD_FILE_MD = None
+if args.board: 
+    BOARD_FILE_MD = os.path.join(BASEDIR, f'{args.board}')
+    if  os.path.isfile(BOARD_FILE_MD):
+        dprint(f'⚙ Board File:\t{BOARD_FILE_MD}')
+    else: 
+        dprint(f'⚙ Board File:\t{BOARD_FILE_MD} not found')
+        BOARD_FILE_MD = None
+        # try: 
+        #     with open(BOARD_FILE_MD, 'w', encoding='utf-8') as f: f.write(f"")
+        # except: exit(f'[!] Board file {BOARD_FILE_MD} was not found and could not be created')
 
 
 
+def update_board(): 
+    page=""
+    global BOARD_FILE_MD
+    if BOARD_FILE_MD:
+        try:
+            page,_ = HTMLExporter(template_name="classic").from_file(BOARD_FILE_MD, {'metadata':{'name':f'🔰 Board | {args.topic}'}}) 
+            #with open(BOARD_FILE_HTML, 'w', encoding='utf-8') as f:f.write(page)
+        except: dprint(f'⚙ Board File could not be updated:\t{BOARD_FILE_MD}')
+        #with open(BOARD_FILE_HTML, 'r') as f: BOARD_PAGE = f.read()
+    return page
+BOARD_PAGE=update_board()
 # ------------------------------------------------------------------------------------------
 # imports ----------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------
@@ -761,6 +804,7 @@ from flask_wtf import FlaskForm
 from wtforms import SubmitField, MultipleFileField
 from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired
+
 # ------------------------------------------------------------------------------------------
 # application setting and instance
 # ------------------------------------------------------------------------------------------
@@ -772,9 +816,10 @@ app.config['downloads'] = DOWNLOAD_FOLDER_PATH
 app.config['emoji'] =     args.emoji
 app.config['topic'] =     args.topic
 app.config['hostinfo'] =  HOST_INFO
-app.config['dfl'] = DOWNLOAD_FILE_LIST
-app.config['rename'] = bool(args.rename)
-app.config['muc'] = MAX_UPLOAD_COUNT
+app.config['dfl'] =       DOWNLOAD_FILE_LIST
+app.config['rename'] =    bool(args.rename)
+app.config['muc'] =       MAX_UPLOAD_COUNT
+app.config['board'] =     (BOARD_FILE_MD is not None)
 class UploadFileForm(FlaskForm): # The upload form using FlaskForm
     file = MultipleFileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
@@ -915,6 +960,21 @@ def logout():
     session['filed'] = []
     return redirect(url_for('login'))
 # ------------------------------------------------------------------------------------------
+
+
+
+# ------------------------------------------------------------------------------------------
+# board
+# ------------------------------------------------------------------------------------------
+@app.route('/board', methods =['GET'])
+def board():
+    if not session.get('has_login', False): return redirect(url_for('login'))
+    global BOARD_PAGE
+    return BOARD_PAGE
+# ------------------------------------------------------------------------------------------
+
+
+
 
 # ------------------------------------------------------------------------------------------
 # download
@@ -1058,6 +1118,18 @@ def reload_db():
         dprint(f"▶ {session['uid']}.{session['named']} just reloaded the db from disk.")
         STATUS, SUCCESS = "Reloaded db from disk", True
     else: STATUS, SUCCESS = "This action requires admin privilege", False
+    TEMPLATE_ADMIN = 'admin.html'
+    return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+@app.route('/reb', methods =['GET']) 
+def refresh_board():
+    r""" refreshes the  board"""
+    if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
+    if session['admind']: 
+        global BOARD_PAGE, update_board
+        BOARD_PAGE=update_board()
+        dprint(f"▶ {session['uid']}.{session['named']} just refreshed the board.")
+        STATUS, SUCCESS =  "Refreshed board", True
+    else: STATUS, SUCCESS =  "This action requires admin privilege", False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 # ------------------------------------------------------------------------------------------
