@@ -702,12 +702,14 @@ if '' in REQUIRED_FILES: REQUIRED_FILES.remove('')
 def VALIDATE_FILENAME(filename):   # a function that checks for valid file extensions based on ALLOWED_EXTENSIONS
     if '.' in filename: 
         name, ext = filename.rsplit('.', 1)
-        if REQUIRED_FILES:  return f'{name}.{ext.lower()}' in REQUIRED_FILES
-        else:               return bool(re.fullmatch(f'.+\.({VALID_FILES_PATTERN})$', f'{name}.{ext.lower()}'))
+        safename = f'{name}.{ext.lower()}'
+        if REQUIRED_FILES:  isvalid = (safename in REQUIRED_FILES)
+        else:               isvalid = bool(re.fullmatch(f'.+\.({VALID_FILES_PATTERN})$', safename))
     else:               
         name, ext = filename, ''
-        if REQUIRED_FILES:  return f'{name}' in REQUIRED_FILES
-        else:               return not ALLOWED_EXTENSIONS
+        if REQUIRED_FILES:  isvalid = (f'{name}' in REQUIRED_FILES)
+        else:               isvalid = (not ALLOWED_EXTENSIONS)
+    return isvalid, safename
 
 def str2bytes(size):
     sizes = dict(KB=2**10, MB=2**20, GB=2**30, TB=2**40)
@@ -944,10 +946,11 @@ def upload():
         n_success = 0
         #---------------------------------------------------------------------------------
         for file in form.file.data:
-            sf = secure_filename(file.filename)
+            isvalid, sf = VALIDATE_FILENAME(secure_filename(file.filename))
             #print(f"[...........] {file.filename} {sf}")
         #---------------------------------------------------------------------------------
-            if not VALIDATE_FILENAME(sf):
+            
+            if not isvalid:
                 why_failed =  f"✗ File not accepted [{sf}] " if REQUIRED_FILES else f"✗ Extension is invalid [{sf}] "
                 result.append((0, why_failed))
                 continue
@@ -1014,7 +1017,7 @@ def purge():
 # ------------------------------------------------------------------------------------------
 # administrative
 # ------------------------------------------------------------------------------------------
-FAILED_ADMIN_MSG = "This action requires admin privilege"
+
 @app.route('/ref', methods =['GET']) 
 def refresh_dll():
     r""" refreshes the  downloads"""
@@ -1024,7 +1027,7 @@ def refresh_dll():
         app.config['dfl'] = GET_DOWNLOAD_FILE_LIST()
         dprint(f"▶ {session['uid']}.{session['named']} just refreshed the download list.")
         STATUS, SUCCESS =  "Update download-list", True
-    else: STATUS, SUCCESS =  FAILED_ADMIN_MSG, False
+    else: STATUS, SUCCESS =  "This action requires admin privilege", False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 @app.route('/dbw', methods =['GET']) 
@@ -1037,7 +1040,7 @@ def persist_db():
             dprint(f"▶ {session['uid']}.{session['named']} just persisted the db to disk.")
             STATUS, SUCCESS = "Persisted db to disk", True
         else: STATUS, SUCCESS =  f"Write error '{args.login}' might be open", False
-    else: STATUS, SUCCESS =  FAILED_ADMIN_MSG, False
+    else: STATUS, SUCCESS =  "This action requires admin privilege", False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 @app.route('/dbr', methods =['GET']) # rdb for reload db
@@ -1049,7 +1052,7 @@ def reload_db():
         db = read_db_from_disk()
         dprint(f"▶ {session['uid']}.{session['named']} just reloaded the db from disk.")
         STATUS, SUCCESS = "Reloaded db from disk", True
-    else: STATUS, SUCCESS = FAILED_ADMIN_MSG, False
+    else: STATUS, SUCCESS = "This action requires admin privilege", False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 # ------------------------------------------------------------------------------------------
