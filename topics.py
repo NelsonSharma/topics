@@ -25,10 +25,11 @@ __version__="2.3.25"
 from sys import exit
 if __name__!='__main__': exit(f'[!] can not import {__name__}.{__file__}')
 class Fake:
+    def __len__(self): return len(self.__dict__)
     def __init__(self, **kwargs) -> None:
         for name, attribute in kwargs.items():  setattr(self, name, attribute)
 #%% configurations
-class Configs:
+class configs:
     r""" add your apps here """
     @staticmethod
     def default(): #<---- default configuration - do not delete - required to add arguments to argparser
@@ -63,7 +64,8 @@ HOST_INFO = f'{os.getlogin()}@{platform.node()}'
 #%% parse arguments
 # ------------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------
-default_args = Configs.default()
+default_config = configs.default
+default_args = default_config()
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument(f'--config', type=str, default='')
@@ -73,12 +75,25 @@ del parser
 
 if args.config: # override everything
     try:
-        config_func_name = getattr(Configs, f'{args.config}')
-        args = Fake(**(config_func_name()))
-    except: exit(f'error reading config @ {args.config}')
+        c = f'{args.config}'
+        if '.' in c:
+            c_py, c_fun = c.split(".")
+            import importlib
+            c_module = importlib.import_module(c_py)
+            if hasattr(c_module, c_fun): config_func_name = getattr(c_module, c_fun)
+            else: raise NameError
+        else:
+            if hasattr(configs, c): config_func_name = getattr(configs, c)
+            else: raise NameError
+    except: 
+        continue_default_config = input(f'↝ error loading config ({c}) press enter to use default')
+        if f'{continue_default_config}': config_func_name = lambda:{}
+        else: config_func_name = default_config
+    finally: args = Fake(**(config_func_name()))
 
+    if not len(args):exit(f'[!] config not provided')
     for k in default_args: 
-        if not hasattr(args, k): exit(f'config is missing attribute {k}')
+        if not hasattr(args, k): exit(f'[!] config is missing attribute ({k})')
 # ******************************************************************************************
 HTML_TEMPLATES = dict(
 # ******************************************************************************************
@@ -526,7 +541,7 @@ try:
         with open(os.path.join(TEMPLATES_DIR, f"{k}.html"), 'w', encoding='utf-8') as f: f.write(v)
     for k,v in CSS_TEMPLATES.items():
         with open(os.path.join(STATIC_DIR, f"{k}.css"), 'w', encoding='utf-8') as f: f.write(v)
-except: exit(f'could not create html at {TEMPLATES_DIR} or {STATIC_DIR}')
+except: exit(f'[!] could not create html at {TEMPLATES_DIR} or {STATIC_DIR}')
 # topics app 
 
 # ------------------------------------------------------------------------------------------
@@ -554,19 +569,19 @@ dprint(f'⚙ Base dicectiry:\t{BASEDIR}')
 # ------------------------------------------------------------------------------------------
 # WEB-SERVER INFORMATION
 # ------------------------------------------------------------------------------------------\
-if not args.secret: exit(f'secret key was not provided!')
+if not args.secret: exit(f'[!] secret key was not provided!')
 APP_SECRET_KEY_FILE = os.path.join(BASEDIR, args.secret)
 if not os.path.isfile(APP_SECRET_KEY_FILE): #< --- if key dont exist, create it
     APP_SECRET_KEY = '{}:{}'.format(HOST_INFO, now())
     try:
         with open(APP_SECRET_KEY_FILE, 'w') as f: f.write(APP_SECRET_KEY) #<---- auto-generated key
-    except: exit(f'could not create secret key @ {APP_SECRET_KEY_FILE}')
+    except: exit(f'[!] could not create secret key @ {APP_SECRET_KEY_FILE}')
     dprint(f'⇒ New secret created:\t{APP_SECRET_KEY_FILE}')
 else:
     try:
         with open(APP_SECRET_KEY_FILE, 'r') as f: APP_SECRET_KEY = f.read()
         dprint(f'⇒ Load secret from:\t{APP_SECRET_KEY_FILE}')
-    except: exit(f'could not read secret key @ {APP_SECRET_KEY_FILE}')
+    except: exit(f'[!] could not read secret key @ {APP_SECRET_KEY_FILE}')
 
 
 # ------------------------------------------------------------------------------------------
@@ -577,10 +592,10 @@ from pandas import DataFrame, read_excel, isnull
 # ------------------------------------------------------------------------------------------
 # LOGIN DATABASE - EXCEL
 # ------------------------------------------------------------------------------------------
-if not args.login: exit(f'login file was not provided!')
+if not args.login: exit(f'[!] login file was not provided!')
 LOGIN_XL_PATH = os.path.join( BASEDIR, args.login) 
 if not os.path.isfile(LOGIN_XL_PATH): 
-    dprint(f'⇒ Login file {LOGIN_XL_PATH} not found - creating new...')
+    #print(f'⇒ Login file {LOGIN_XL_PATH} not found - creating new...')
     db_dict = { #<---------------- default login file
         'ADMIN': [f'+'], #<---- any non blank string will work
         'UID': [f'{os.getlogin()}'],
@@ -635,10 +650,10 @@ def VALIDATE_PASSWORD(password):   # a function that can validate the password -
 # ------------------------------------------------------------------------------------------
 # download settings
 # ------------------------------------------------------------------------------------------
-if not args.downloads: exit(f'downloads folder was not provided!')
+if not args.downloads: exit(f'[!] downloads folder was not provided!')
 DOWNLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.downloads) 
 try: os.makedirs(DOWNLOAD_FOLDER_PATH, exist_ok=True)
-except: exit(f'downloads folder @ {DOWNLOAD_FOLDER_PATH} was not found and count not be created')
+except: exit(f'[!] downloads folder @ {DOWNLOAD_FOLDER_PATH} was not found and count not be created')
 dprint(f'⚙ Download Folder:\t{DOWNLOAD_FOLDER_PATH}')
 def GET_DOWNLOAD_FILE_LIST (): 
     dlist = []
@@ -653,10 +668,10 @@ dprint(f'⚙ Download filelist\t{len(DOWNLOAD_FILE_LIST)} item(s)')
 # ------------------------------------------------------------------------------------------
 # upload settings
 # ------------------------------------------------------------------------------------------
-if not args.uploads: exit(f'uploads folder was not provided!')
+if not args.uploads: exit(f'[!] uploads folder was not provided!')
 UPLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.uploads ) 
 try: os.makedirs(UPLOAD_FOLDER_PATH, exist_ok=True)
-except: exit(f'uploads folder @ {UPLOAD_FOLDER_PATH} was not found and count not be created')
+except: exit(f'[!] uploads folder @ {UPLOAD_FOLDER_PATH} was not found and count not be created')
 dprint(f'⚙ Upload Folder:\t{UPLOAD_FOLDER_PATH}')
 
 
@@ -1082,14 +1097,14 @@ SERVE(
 )
 #%%
 while not write_db_to_disk(db):
-    t = input('Persist error ~ Press Enter to try again')
+    t = input('↝ Persist error ~ Press Enter to try again')
     if t: 
-        dprint(f'! could not persist db to {LOGIN_XL_PATH}')
+        print(f'⇒ could not persist db to {LOGIN_XL_PATH}')
         break
 try:
     for k,v in HTML_TEMPLATES.items(): os.remove(os.path.join(TEMPLATES_DIR, f"{k}.html"))
     for k,v in CSS_TEMPLATES.items(): os.remove(os.path.join(STATIC_DIR, f"{k}.css"))
     os.removedirs(TEMPLATES_DIR), os.removedirs(STATIC_DIR)
-except: dprint(f'could not remove html at {TEMPLATES_DIR} or {STATIC_DIR}')
+except: print(f'⇒ could not remove html at {TEMPLATES_DIR} or {STATIC_DIR}')
 #%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 print(f'Finished!')

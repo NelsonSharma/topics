@@ -75,6 +75,11 @@ Description of Arguments
 # when specified, it will ignore all other arguments
 # instead all arguments are built from the configuration dict that is returned
 # default is empty-string which means not using config - use args instead
+# NOTE: custom configs can be created by copying the 'default' config function in the 'configs' class 
+# ... in such a case, the config arg should be provided as --config=custom_config_function
+# NOTE: if config is provided with the dot (.) character like --config=abc.xyz
+# ... then the function 'xyz' will be called from local module 'abc' (possibly defined in 'abc.py')
+# ... this is useful in storing custom configs seperate from application
 
 --base
 # the base directory to server files
@@ -154,7 +159,7 @@ Description of Arguments
 --verbose       
 # verbose level 
 # (0=silent) (1=events) (2=events+time)
-# default is [0]
+# default is [2]
 
 ```
 
