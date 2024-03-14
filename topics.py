@@ -54,7 +54,7 @@ class configs:
         'host'        : '0.0.0.0'			    ,
         'uploads'     : '__uploads__'		    ,
         'downloads'   : '__downloads__'		    ,
-        'board'       : ''                      ,
+        'board'       : '__board__.ipynb'                      ,
         'threads'     : 4			            ,
         'verbose'     : 2					    ,
         }
@@ -729,7 +729,8 @@ def VALIDATE_FILENAME(filename):   # a function that checks for valid file exten
         else:               isvalid = bool(re.fullmatch(f'.+\.({VALID_FILES_PATTERN})$', safename))
     else:               
         name, ext = filename, ''
-        if REQUIRED_FILES:  isvalid = (f'{name}' in REQUIRED_FILES)
+        safename = f'{name}'
+        if REQUIRED_FILES:  isvalid = (safename in REQUIRED_FILES)
         else:               isvalid = (not ALLOWED_EXTENSIONS)
     return isvalid, safename
 
