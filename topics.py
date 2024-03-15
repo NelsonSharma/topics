@@ -19,7 +19,7 @@ python topics.py --config=default
 # ... (first) is to update user's record with new passwords set by users (calls `db.update()`) 
 # ... ... however, when user's are uploading, threads do not write to global variables
 # ... (second) is updating download-list and login-db by admins - this is rare and infrequent
-
+# NOTE: special string "::::" is used for replacing javascript on repass - uid and url should not contain this
 https://github.com/NelsonSharma/topics
 Author: Nelson.S
 """
@@ -132,16 +132,30 @@ admin = """
         {% endif %}
         <br>
         <br>
-        <a href="{{ url_for('persist_db') }}" class="btn_admin">⚙ Persist login-db ↴</a>
+        <a href="{{ url_for('adminpage',req_cmd='dbw') }}" class="btn_admin">⚙ Persist login-db ↴</a>
         <br>
         <br>
-        <a href="{{ url_for('reload_db') }}" class="btn_admin">⚙ Reload login-db ↺</a>
+        <a href="{{ url_for('adminpage',req_cmd='dbr') }}" class="btn_admin">⚙ Reload login-db ↺</a>
         <br>
         <br>
-        <a href="{{ url_for('refresh_dll') }}" class="btn_admin">⚙ Update download-list ▤</a>
+        <a href="{{ url_for('adminpage',req_cmd='upd') }}" class="btn_admin">⚙ Update download-list ▤</a>
         <br>
         <br>
-        <a href="{{ url_for('refresh_board') }}" class="btn_admin">⚙ Refresh board ▣</a>
+        <a href="{{ url_for('adminpage',req_cmd='upa') }}" class="btn_admin">⚙ Update archive-list ⊞</a>
+        <br>
+        <br>
+        <a href="{{ url_for('adminpage',req_cmd='ref') }}" class="btn_admin">⚙ Refresh board ▣</a>
+        <br>
+        <br>
+        <button class="btn_admin" onclick="confirm_repass()">⚙ Reset Password ⨝</button>
+            <script>
+                function confirm_repass() {
+                let res = prompt("Enter UID", ""); 
+                if (res != null) {
+                    location.href = "{{ url_for('repass',req_uid='::::') }}".replace("::::", res);
+                    }
+                }
+            </script>
         <br>
         <br>
     </div>
@@ -1178,67 +1192,133 @@ def purge():
 # ------------------------------------------------------------------------------------------
 # administrative
 # ------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------
+@app.route('/admin/', methods =['GET'], defaults={'req_cmd': ''})
+@app.route('/admin/<req_cmd>')
+def adminpage(req_cmd):
+    r""" opens admin page """ 
+    #if not session.get('has_login', False): return redirect(url_for('login'))
+    #TEMPLATE_ADMIN = 'admin.html'
+    #if session['admind']: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=True)
+    #else: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=False)
 
-@app.route('/ref', methods =['GET']) 
-def refresh_dll():
-    r""" refreshes the  downloads"""
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
     if session['admind']: 
-        global GET_DOWNLOAD_FILE_LIST, GET_ARCHIVE_FILE_LIST
-        app.config['dfl'] = GET_DOWNLOAD_FILE_LIST()
-        app.config['afl'] = GET_ARCHIVE_FILE_LIST()
-        dprint(f"▶ {session['uid']}.{session['named']} just refreshed the download list.")
-        STATUS, SUCCESS =  "Update download-list", True
+        in_cmd = f'{req_cmd}'
+        if in_cmd: 
+            if   in_cmd=="upd": STATUS, SUCCESS = update_dl()
+            elif in_cmd=="upa": STATUS, SUCCESS = update_al()
+            elif in_cmd=="dbw": STATUS, SUCCESS = persist_db()
+            elif in_cmd=="dbr": STATUS, SUCCESS = reload_db()
+            elif in_cmd=="ref": STATUS, SUCCESS = refresh_board()
+            else: STATUS, SUCCESS =  f"Invalid command '{in_cmd}'", False
+        else: STATUS, SUCCESS =  f"Admin Access", True
     else: STATUS, SUCCESS =  "This action requires admin privilege", False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
-@app.route('/dbw', methods =['GET']) 
+
+
+#@app.route('/ref', methods =['GET']) 
+def update_dl():
+    r""" refreshes the  downloads"""
+    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
+    #if session['admind']: 
+    global GET_DOWNLOAD_FILE_LIST
+    app.config['dfl'] = GET_DOWNLOAD_FILE_LIST()
+    dprint(f"▶ {session['uid']}.{session['named']} just refreshed the download list.")
+    STATUS, SUCCESS =  "Updated download-list", True
+    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
+    #TEMPLATE_ADMIN = 'admin.html'
+    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+
+#@app.route('/ref', methods =['GET']) 
+def update_al():
+    r""" refreshes the  downloads"""
+    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
+    #if session['admind']: 
+    global GET_ARCHIVE_FILE_LIST
+    app.config['afl'] = GET_ARCHIVE_FILE_LIST()
+    dprint(f"▶ {session['uid']}.{session['named']} just refreshed the archive list.")
+    STATUS, SUCCESS =  "Updated archive-list", True
+    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
+    #TEMPLATE_ADMIN = 'admin.html'
+    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+
+#@app.route('/dbw', methods =['GET']) 
 def persist_db():
     r""" writes db to disk """
-    if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    if session['admind']: 
-        global db, write_db_to_disk
-        if write_db_to_disk(db):
-            dprint(f"▶ {session['uid']}.{session['named']} just persisted the db to disk.")
-            STATUS, SUCCESS = "Persisted db to disk", True
-        else: STATUS, SUCCESS =  f"Write error '{args.login}' might be open", False
-    else: STATUS, SUCCESS =  "This action requires admin privilege", False
-    TEMPLATE_ADMIN = 'admin.html'
-    return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
-@app.route('/dbr', methods =['GET']) # rdb for reload db
+    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
+    #if session['admind']: 
+    global db, write_db_to_disk
+    if write_db_to_disk(db):
+        dprint(f"▶ {session['uid']}.{session['named']} just persisted the db to disk.")
+        STATUS, SUCCESS = "Persisted db to disk", True
+    else: STATUS, SUCCESS =  f"Write error '{args.login}' might be open", False
+    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
+    #TEMPLATE_ADMIN = 'admin.html'
+    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+
+#@app.route('/dbr', methods =['GET']) # rdb for reload db
 def reload_db():
     r""" reloads db from disk """
-    if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    if session['admind']: 
-        global db, read_db_from_disk
-        db = read_db_from_disk()
-        dprint(f"▶ {session['uid']}.{session['named']} just reloaded the db from disk.")
-        STATUS, SUCCESS = "Reloaded db from disk", True
-    else: STATUS, SUCCESS = "This action requires admin privilege", False
-    TEMPLATE_ADMIN = 'admin.html'
-    return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
-@app.route('/reb', methods =['GET']) 
+    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
+    #if session['admind']: 
+    global db, read_db_from_disk
+    db = read_db_from_disk()
+    dprint(f"▶ {session['uid']}.{session['named']} just reloaded the db from disk.")
+    STATUS, SUCCESS = "Reloaded db from disk", True
+    #else: STATUS, SUCCESS = "This action requires admin privilege", False
+    #TEMPLATE_ADMIN = 'admin.html'
+    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+
+#@app.route('/reb', methods =['GET']) 
 def refresh_board():
     r""" refreshes the  board"""
+    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
+    #if session['admind']: 
+    global BOARD_PAGE, update_board
+    BOARD_PAGE=update_board()
+    dprint(f"▶ {session['uid']}.{session['named']} just refreshed the board.")
+    STATUS, SUCCESS =  "Board was refreshed", True
+    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
+    #TEMPLATE_ADMIN = 'admin.html'
+    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+
+
+# ------------------------------------------------------------------------------------------
+# password reset
+# ------------------------------------------------------------------------------------------
+@app.route('/x/', methods =['GET'], defaults={'req_uid': ''})
+@app.route('/x/<req_uid>')
+def repass(req_uid):
+    r""" reset user password"""
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
     if session['admind']: 
-        global BOARD_PAGE, update_board
-        BOARD_PAGE=update_board()
-        dprint(f"▶ {session['uid']}.{session['named']} just refreshed the board.")
-        STATUS, SUCCESS =  "Refreshed board", True
+        in_uid = f'{req_uid}'
+        if in_uid: 
+            in_query = in_uid if not args.case else (in_uid.upper() if args.case>0 else in_uid.lower())
+            global db, write_db_to_disk
+            try:                record = db.query("UID==@in_query")
+            except KeyError:    record = None
+            if not len(record): record=None
+            #print(f"◦ record matched? [{record is not None}]")
+            if record is not None: 
+                named = record['NAME'].values[0]
+                uid = record['UID'].values[0]
+                admind = record['ADMIN'].values[0]
+                if isnull(admind): admind=''
+                if not admind:
+                    record['PASS'].values[0]=''
+                    db.update(record)
+                    dprint(f"▶ {session['uid']}.{session['named']} just reset the password for {uid}.{named}")
+                    STATUS, SUCCESS =  f"Password was reset for {uid}.{named}", True
+                else: STATUS, SUCCESS =  f"Cannot reset password for admin account '{in_query}'", False
+            else: STATUS, SUCCESS =  f"User '{in_query}' not found - cannot reset password", False
+        else: STATUS, SUCCESS =  f"Requires uid - use /x/<uid> to reset password", False
     else: STATUS, SUCCESS =  "This action requires admin privilege", False
     TEMPLATE_ADMIN = 'admin.html'
     return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 # ------------------------------------------------------------------------------------------
-@app.route('/admin', methods =['GET'])
-def adminpage():
-    r""" opens admin page """ 
-    if not session.get('has_login', False): return redirect(url_for('login'))
-    TEMPLATE_ADMIN = 'admin.html'
-    if session['admind']: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=True)
-    else: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=False)
-
-
 
 #%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
