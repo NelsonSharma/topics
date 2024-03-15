@@ -20,6 +20,7 @@ python topics.py --config=default
 # ... ... however, when user's are uploading, threads do not write to global variables
 # ... (second) is updating download-list and login-db by admins - this is rare and infrequent
 # NOTE: special string "::::" is used for replacing javascript on repass - uid and url should not contain this
+# NOTE: special username 'None' is not allowed however words like 'none' will work
 https://github.com/NelsonSharma/topics
 Author: Nelson.S
 """
@@ -132,6 +133,7 @@ admin = """
         {% endif %}
         <br>
         <br>
+        {% if '+' in session.admind %}
         <a href="{{ url_for('adminpage',req_cmd='dbw') }}" class="btn_admin">⚙ Persist login-db ↴</a>
         <br>
         <br>
@@ -158,6 +160,7 @@ admin = """
             </script>
         <br>
         <br>
+        {% endif %}
     </div>
 			
     <!-- ---------------------------------------------------------->
@@ -322,18 +325,24 @@ upload="""
         <div class="userword">{{session.uid}} {{ config['emoji'] }} {{session.named}}</div>
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
+        {% if "D" in session.admind %}
         <a href="{{ url_for('download') }}" class="btn_download">Downloads</a>
+        {% endif %}
+        {% if "A" in session.admind %}
         <a href="{{ url_for('archive') }}" class="btn_archive">Archives</a>
+        {% endif %}
+        {% if "U" in session.admind %}
         <a href="{{ url_for('uploadf') }}" class="btn_refresh">Refresh</a>
-        
-        {% if config.board %}
+        {% endif %}
+        {% if "B" in session.admind and config.board %}
         <a href="{{ url_for('board') }}" class="btn_board" target="_blank">Board</a>
         {% endif %}
-        {% if session.admind %}
+        {% if '+' in session.admind %}
         <a href="{{ url_for('adminpage') }}" class="btn_admin">⚙</a>
         {% endif %}
         <br>
         <br>
+        {% if config.muc!=0 and "U" in session.admind %}
         <div class="status">
             <ol>
             {% for s,f in status %}
@@ -350,7 +359,6 @@ upload="""
             </ol>
         </div>
         <br>
-        {% if config.muc!=0 %}
         <form method='POST' enctype='multipart/form-data'>
             {{form.hidden_tag()}}
             {{form.file()}}
@@ -692,7 +700,7 @@ LOGIN_XL_PATH = os.path.join( BASEDIR, args.login)
 if not os.path.isfile(LOGIN_XL_PATH): 
     #print(f'⇒ Login file {LOGIN_XL_PATH} not found - creating new...')
     db_dict = { #<---------------- default login file
-        'ADMIN': [f'+'], #<---- any non blank string will work
+        'ADMIN': [f'DABU+'], #<---- k # Access Levels   .Admin Archive Download Board Upload 
         'UID': [f'{os.getlogin()}'],
         'NAME': [f'{platform.node()}'],
         'PASS': [''],
@@ -803,9 +811,7 @@ def get_valid_re_pattern(validext):
     return pattern[:-1]
 VALID_FILES_PATTERN = get_valid_re_pattern(ALLOWED_EXTENSIONS)
 
-# def VALIDATE_EXTENSION(filename):   # a function that checks for valid file extensions based on ALLOWED_EXTENSIONS
-#     if len(ALLOWED_EXTENSIONS): return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-#     else: return True
+
 REQUIRED_FILES = set([x.strip() for x in args.required.split(',') if x])  # a set or list of file extensions that are allowed to be uploaded 
 if '' in REQUIRED_FILES: REQUIRED_FILES.remove('')
 
@@ -950,7 +956,10 @@ def login():
             named = record['NAME'].values[0]
             uid = record['UID'].values[0]
             admind = record['ADMIN'].values[0]
-            if isnull(admind): admind=''
+            
+            admind = ('' if isnull(admind) else f'{admind}'.upper())
+        
+            
             #print(f'{passwd=}, {named=}, {uid=}, {admind=}')
             #print(f"◦ matched record [{uid}|{named}]")
             if isnull(passwd) or passwd=='': # fist login
@@ -1047,7 +1056,7 @@ def logout():
     session['has_login'] = False
     session['uid'] = ""
     session['named'] = ""
-    session['admind'] = ""
+    session['admind'] = ''
     session['filed'] = []
     return redirect(url_for('login'))
 # ------------------------------------------------------------------------------------------
@@ -1060,8 +1069,10 @@ def logout():
 @app.route('/board', methods =['GET'])
 def board():
     if not session.get('has_login', False): return redirect(url_for('login'))
+    if 'B' not in session['admind']:  return redirect(url_for('upload'))
     global BOARD_PAGE
     return BOARD_PAGE
+
 # ------------------------------------------------------------------------------------------
 
 
@@ -1073,6 +1084,7 @@ def board():
 def archive(req_path):
     TEMPLATE_ARCHIVE = 'archive.html'
     if not session.get('has_login', False): return redirect(url_for('login'))
+    if not 'A' in session['admind']: return redirect(url_for('upload'))
     abs_path = os.path.join(app.config['archives'], req_path) # Joining the base and the requested path
     #if req_path:print(f"◦ {session['uid']} trying to download {req_path}")
     if not os.path.exists(abs_path): 
@@ -1092,6 +1104,7 @@ def archive(req_path):
 def download(req_path):
     TEMPLATE_DOWNLOAD = 'download.html'
     if not session.get('has_login', False): return redirect(url_for('login'))
+    if 'D' not in session['admind']:  return redirect(url_for('upload'))
     abs_path = os.path.join(app.config['downloads'], req_path) # Joining the base and the requested path
     #if req_path:print(f"◦ {session['uid']} trying to download {req_path}")
     if not os.path.exists(abs_path): 
@@ -1110,12 +1123,13 @@ def download(req_path):
 def upload():
     TEMPLATE_UPLOAD =   'upload.html'
     if not session.get('has_login', False): return redirect(url_for('login'))
+    #print( session['admind'])
     form = UploadFileForm()
     folder_name = os.path.join( app.config['uploads'], session['uid']) 
     #print(f"user {session['uid']} landed on upload page")    
     #print(f"..... has uploaded {len(file_list)} items")
-
-    if form.validate_on_submit():
+    
+    if form.validate_on_submit() and ('U' in session['admind']):
         dprint(f"◦ user {session['uid']} is trying to upload {len(form.file.data)} items.")
         if app.config['muc']==0: 
             return render_template(TEMPLATE_UPLOAD, form=form, status=[(0, f'✗ Uploads are disabled')])
@@ -1177,6 +1191,7 @@ def purge():
     NOTE: each user will have its won directory, so choose usernames such that a corresponding folder name is a valid one
     """
     if not session.get('has_login', False): return redirect(url_for('login'))
+    if 'U' not in session['admind']:  return redirect(url_for('upload'))
     folder_name = os.path.join( app.config['uploads'], session['uid']) 
     if os.path.exists(folder_name):
         file_list = os.listdir(folder_name)
@@ -1197,13 +1212,8 @@ def purge():
 @app.route('/admin/<req_cmd>')
 def adminpage(req_cmd):
     r""" opens admin page """ 
-    #if not session.get('has_login', False): return redirect(url_for('login'))
-    #TEMPLATE_ADMIN = 'admin.html'
-    #if session['admind']: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=True)
-    #else: return render_template(TEMPLATE_ADMIN,  status="Admin Access", success=False)
-
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    if session['admind']: 
+    if '+' in session['admind']: 
         in_cmd = f'{req_cmd}'
         if in_cmd: 
             if   in_cmd=="upd": STATUS, SUCCESS = update_dl()
@@ -1218,71 +1228,45 @@ def adminpage(req_cmd):
     return render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 
 
-#@app.route('/ref', methods =['GET']) 
+
 def update_dl():
     r""" refreshes the  downloads"""
-    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    #if session['admind']: 
     global GET_DOWNLOAD_FILE_LIST
     app.config['dfl'] = GET_DOWNLOAD_FILE_LIST()
     dprint(f"▶ {session['uid']}.{session['named']} just refreshed the download list.")
-    STATUS, SUCCESS =  "Updated download-list", True
-    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
-    #TEMPLATE_ADMIN = 'admin.html'
-    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+    return "Updated download-list", True #  STATUS, SUCCESS
 
-#@app.route('/ref', methods =['GET']) 
 def update_al():
     r""" refreshes the  downloads"""
-    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    #if session['admind']: 
     global GET_ARCHIVE_FILE_LIST
     app.config['afl'] = GET_ARCHIVE_FILE_LIST()
     dprint(f"▶ {session['uid']}.{session['named']} just refreshed the archive list.")
-    STATUS, SUCCESS =  "Updated archive-list", True
-    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
-    #TEMPLATE_ADMIN = 'admin.html'
-    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+    return "Updated archive-list", True #  STATUS, SUCCESS
 
-#@app.route('/dbw', methods =['GET']) 
+
 def persist_db():
     r""" writes db to disk """
-    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    #if session['admind']: 
     global db, write_db_to_disk
     if write_db_to_disk(db):
         dprint(f"▶ {session['uid']}.{session['named']} just persisted the db to disk.")
         STATUS, SUCCESS = "Persisted db to disk", True
     else: STATUS, SUCCESS =  f"Write error '{args.login}' might be open", False
-    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
-    #TEMPLATE_ADMIN = 'admin.html'
     return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
 
-#@app.route('/dbr', methods =['GET']) # rdb for reload db
+
 def reload_db():
     r""" reloads db from disk """
-    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    #if session['admind']: 
     global db, read_db_from_disk
     db = read_db_from_disk()
     dprint(f"▶ {session['uid']}.{session['named']} just reloaded the db from disk.")
-    STATUS, SUCCESS = "Reloaded db from disk", True
-    #else: STATUS, SUCCESS = "This action requires admin privilege", False
-    #TEMPLATE_ADMIN = 'admin.html'
-    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+    return "Reloaded db from disk", True #  STATUS, SUCCESS
 
-#@app.route('/reb', methods =['GET']) 
 def refresh_board():
     r""" refreshes the  board"""
-    #if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    #if session['admind']: 
     global BOARD_PAGE, update_board
     BOARD_PAGE=update_board()
     dprint(f"▶ {session['uid']}.{session['named']} just refreshed the board.")
-    STATUS, SUCCESS =  "Board was refreshed", True
-    #else: STATUS, SUCCESS =  "This action requires admin privilege", False
-    #TEMPLATE_ADMIN = 'admin.html'
-    return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
+    return "Board was refreshed", True
 
 
 # ------------------------------------------------------------------------------------------
@@ -1293,7 +1277,7 @@ def refresh_board():
 def repass(req_uid):
     r""" reset user password"""
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
-    if session['admind']: 
+    if '+' in session['admind']: 
         in_uid = f'{req_uid}'
         if in_uid: 
             in_query = in_uid if not args.case else (in_uid.upper() if args.case>0 else in_uid.lower())
@@ -1306,8 +1290,8 @@ def repass(req_uid):
                 named = record['NAME'].values[0]
                 uid = record['UID'].values[0]
                 admind = record['ADMIN'].values[0]
-                if isnull(admind): admind=''
-                if not admind:
+                admind = ('' if isnull(admind) else f'{admind}'.upper())
+                if '+' not in admind:
                     record['PASS'].values[0]=''
                     db.update(record)
                     dprint(f"▶ {session['uid']}.{session['named']} just reset the password for {uid}.{named}")
