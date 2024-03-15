@@ -54,7 +54,8 @@ class configs:
         'host'        : '0.0.0.0'			    ,
         'uploads'     : '__uploads__'		    ,
         'downloads'   : '__downloads__'		    ,
-        'board'       : '__board__.ipynb'                      ,
+        'archives'    : '__archives__'		    ,
+        'board'       : '__board__.ipynb'       ,
         'threads'     : 4			            ,
         'verbose'     : 2					    ,
         }
@@ -248,6 +249,48 @@ download = """
 </html>
 """,
 # ******************************************************************************************
+archive = """
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title> 🔶 {{ config.topic }} | {{ session.uid }} </title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">           
+    </head>
+    <body>
+    <!-- ---------------------------------------------------------->
+    </br>
+    <!-- ---------------------------------------------------------->
+    
+    <div align="left" style="padding: 20px;">
+        <div class="topic_mid">{{ config.topic }}</div>
+        <div class="userword">{{session.uid}} {{ config['emoji'] }} {{session.named}}</div>
+        <br>
+        <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
+        <a href="{{ url_for('upload') }}" class="btn_download">Back</a>
+        <a href="{{ url_for('archive') }}" class="btn_refresh">Refresh</a>
+        <br>
+        <br>
+        <div class="files_status">Archives</div>
+        <br>
+        <div class="files_list_down">
+            <ol>
+            {% for file in config.afl %}
+            <li><a href="{{ (request.path + '/' if request.path != '/' else '') + file }}" style="text-decoration: none; color: rgb(20, 20, 20);" >{{ file }}</a></li>
+            <br>
+            {% endfor %}
+            </ol>
+        </div>
+        <br>
+        <br>
+    </div>
+
+    <!-- ---------------------------------------------------------->
+    </br>
+    <!-- ---------------------------------------------------------->
+    </body>
+</html>
+""",
+# ******************************************************************************************
 upload="""
 <html>
 	<head>
@@ -266,16 +309,9 @@ upload="""
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
         <a href="{{ url_for('download') }}" class="btn_download">Downloads</a>
+        <a href="{{ url_for('archive') }}" class="btn_archive">Archives</a>
         <a href="{{ url_for('uploadf') }}" class="btn_refresh">Refresh</a>
-        <button class="btn_purge" onclick="confirm_purge()">Purge</button>
-            <script>
-                function confirm_purge() {
-                let res = confirm("Purge all the uploaded files now?");
-                if (res == true) {
-                    location.href = "{{ url_for('purge') }}";
-                    }
-                }
-            </script>
+        
         {% if config.board %}
         <a href="{{ url_for('board') }}" class="btn_board" target="_blank">Board</a>
         {% endif %}
@@ -307,7 +343,17 @@ upload="""
             {{form.submit()}}
         </form>
         <br>
-        <div class="files_status">Uploads</div>
+        <div class="files_status">Uploads
+        <button class="btn_purge" onclick="confirm_purge()">Purge</button>
+            <script>
+                function confirm_purge() {
+                let res = confirm("Purge all the uploaded files now?");
+                if (res == true) {
+                    location.href = "{{ url_for('purge') }}";
+                    }
+                }
+            </script>
+        </div>
         <br>
         <div class="files_list_up">
             <ol>
@@ -429,6 +475,16 @@ style = """
 .btn_download {
     padding: 2px 10px;
     background-color: #089a28; 
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: large;
+    border-radius: 10px;
+    font-family:monospace;
+    text-decoration: none;
+}
+.btn_archive{
+    padding: 2px 10px;
+    background-color: #10a58a; 
     color: #FFFFFF;
     font-weight: bold;
     font-size: large;
@@ -689,6 +745,24 @@ def GET_DOWNLOAD_FILE_LIST ():
     return dlist
 DOWNLOAD_FILE_LIST = GET_DOWNLOAD_FILE_LIST()
 dprint(f'⚙ Download filelist\t{len(DOWNLOAD_FILE_LIST)} item(s)')
+# ------------------------------------------------------------------------------------------
+# archive settings
+# ------------------------------------------------------------------------------------------
+if not args.archives: exit(f'[!] archives folder was not provided!')
+ARCHIVE_FOLDER_PATH = os.path.join( BASEDIR, args.archives) 
+try: os.makedirs(ARCHIVE_FOLDER_PATH, exist_ok=True)
+except: exit(f'[!] archives folder @ {ARCHIVE_FOLDER_PATH} was not found and could not be created')
+dprint(f'⚙ Archive Folder:\t{ARCHIVE_FOLDER_PATH}')
+def GET_ARCHIVE_FILE_LIST (): 
+    dlist = []
+    d = ARCHIVE_FOLDER_PATH
+    for f in os.listdir(d):
+        p = os.path.join(d, f)
+        if os.path.isfile(p): dlist.append(f)
+    return dlist
+ARCHIVE_FILE_LIST = GET_ARCHIVE_FILE_LIST()
+dprint(f'⚙ Archive filelist\t{len(ARCHIVE_FILE_LIST)} item(s)')
+
 
 # ------------------------------------------------------------------------------------------
 # upload settings
@@ -814,10 +888,12 @@ app.secret_key =          APP_SECRET_KEY
 app.config['base'] =      BASEDIR
 app.config['uploads'] =   UPLOAD_FOLDER_PATH
 app.config['downloads'] = DOWNLOAD_FOLDER_PATH
+app.config['archives'] =  ARCHIVE_FOLDER_PATH
 app.config['emoji'] =     args.emoji
 app.config['topic'] =     args.topic
 app.config['hostinfo'] =  HOST_INFO
 app.config['dfl'] =       DOWNLOAD_FILE_LIST
+app.config['afl'] =       ARCHIVE_FILE_LIST
 app.config['rename'] =    bool(args.rename)
 app.config['muc'] =       MAX_UPLOAD_COUNT
 app.config['board'] =     (BOARD_FILE_MD is not None)
@@ -975,7 +1051,24 @@ def board():
 # ------------------------------------------------------------------------------------------
 
 
-
+# ------------------------------------------------------------------------------------------
+# archive
+# ------------------------------------------------------------------------------------------
+@app.route('/archive', methods =['GET'], defaults={'req_path': ''})
+@app.route('/archive/<path:req_path>')
+def archive(req_path):
+    TEMPLATE_ARCHIVE = 'archive.html'
+    if not session.get('has_login', False): return redirect(url_for('login'))
+    abs_path = os.path.join(app.config['archives'], req_path) # Joining the base and the requested path
+    #if req_path:print(f"◦ {session['uid']} trying to download {req_path}")
+    if not os.path.exists(abs_path): 
+        dprint(f"◦ requested file was not found {abs_path}") #Return 404 if path doesn't exist
+        return abort(404) 
+    if os.path.isfile(abs_path):  #print(f"◦ sending file ")
+        dprint(f'● {session["uid"]}.{session["named"]} just downloaded the file {req_path}')
+        return send_file(abs_path) # Check if path is a file and serve
+    return render_template(TEMPLATE_ARCHIVE)
+# ------------------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------------------
 # download
@@ -987,7 +1080,9 @@ def download(req_path):
     if not session.get('has_login', False): return redirect(url_for('login'))
     abs_path = os.path.join(app.config['downloads'], req_path) # Joining the base and the requested path
     #if req_path:print(f"◦ {session['uid']} trying to download {req_path}")
-    if not os.path.exists(abs_path): return abort(404) # print(f"◦ requested file was not found") #Return 404 if path doesn't exist
+    if not os.path.exists(abs_path): 
+        dprint(f"◦ requested file was not found {abs_path}") #Return 404 if path doesn't exist
+        return abort(404) # print(f"◦ requested file was not found") #Return 404 if path doesn't exist
     if os.path.isfile(abs_path):  #print(f"◦ sending file ")
         dprint(f'● {session["uid"]}.{session["named"]} just downloaded the file {req_path}')
         return send_file(abs_path) # Check if path is a file and serve
@@ -1089,8 +1184,9 @@ def refresh_dll():
     r""" refreshes the  downloads"""
     if not session.get('has_login', False): return redirect(url_for('login')) # "Not Allowed - Requires Login"
     if session['admind']: 
-        global GET_DOWNLOAD_FILE_LIST
+        global GET_DOWNLOAD_FILE_LIST, GET_ARCHIVE_FILE_LIST
         app.config['dfl'] = GET_DOWNLOAD_FILE_LIST()
+        app.config['afl'] = GET_ARCHIVE_FILE_LIST()
         dprint(f"▶ {session['uid']}.{session['named']} just refreshed the download list.")
         STATUS, SUCCESS =  "Update download-list", True
     else: STATUS, SUCCESS =  "This action requires admin privilege", False
