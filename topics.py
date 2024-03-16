@@ -1,105 +1,133 @@
-#%%
-__doc__=""" 
-topics - Flask-based web app for sharing files 
+from sys import exit
+if __name__!='__main__': exit(f'[!] can not import {__name__}.{__file__}')
 
+__version__="2.4.1"
+__doc__=f""" 
+-------------------------------------------------------------
+topics - Flask-based web app for sharing files 
+-------------------------------------------------------------
+Topics Version {__version__}
+Page:   https://github.com/NelsonSharma/topics
+Author: Nelson.S
+-------------------------------------------------------------
+Usage:
 git clone https://github.com/NelsonSharma/topics.git
 cd topics
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install pandas openpyxl Flask Flask-WTF waitress nbconvert IPython
-python -m pip install -r requirements.txt
-
+python -m pip install numpy Flask Flask-WTF waitress nbconvert IPython
 python topics.py 
 python topics.py --config=default
+-------------------------------------------------------------
+Note:
+special string "::::" is used for replacing javascript on `repass` - uid and url should not contain this
+special username 'None' is not allowed however words like 'none' will work
+rename argument means (0 = not allowed) (1 = only rename) (2 = rename and remoji)
+-------------------------------------------------------------
 
-# NOTE: not using app.context, use app.config dict directly
-# NOTE: to achive full thread safety, use `--threads=1`
-# ... however its not absolutely nessesary
-# ... only two places where threads may try to write to global variables
-# ... (first) is to update user's record with new passwords set by users (calls `db.update()`) 
-# ... ... however, when user's are uploading, threads do not write to global variables
-# ... (second) is updating download-list and login-db by admins - this is rare and infrequent
-# NOTE: special string "::::" is used for replacing javascript on repass - uid and url should not contain this
-# NOTE: special username 'None' is not allowed however words like 'none' will work
-https://github.com/NelsonSharma/topics
-Author: Nelson.S
+
+
+Note:
+we use waitress for serving - which uses threads
+threads in python are not really concurrent
+all we need to do is declare variables as global when accessing from a thread
+global variables are shared accross threads and not exclusive to thread
+we must declare global variables only when writing to that variable but not on read 
 """
-__version__="2.3.25"
-# ------------------------------------------------------------------------------------------
-from sys import exit
-if __name__!='__main__': exit(f'[!] can not import {__name__}.{__file__}')
+print(f'Starting...')
+
+#%%
+#-----------------------------------------------------------------------------------------
+def default_config(): #<---- default configuration - do not delete - required to add arguments to argparser
+    return {
+    'base' 		  :	'__topics__'			,
+    'secret'	  :	'__secret__.txt'	    ,
+    'login'       : '__login__.xlsx'	    ,
+    'prompt'      : 0                       ,
+    'rename'      : 0					    ,
+    'topic'       : 'tOpIcS'			    ,
+    'emoji'       : '💻'				    ,
+    'welcome'     : 'Welcome!'			    ,
+    'case'        : 0					    ,
+    'ext'         : ''					    ,
+    'required'    : ''					    ,
+    'maxupcount'  : -1					    ,
+    'maxupsize'   : '1GB'					,
+    'maxconnect'  : 100                     ,
+    'port'        : '8080'				    ,
+    'host'        : '0.0.0.0'			    ,
+    'uploads'     : '__uploads__'		    ,
+    'downloads'   : '__downloads__'		    ,
+    'archives'    : '__archives__'		    ,
+    'board'       : '__board__.ipynb'       ,
+    'threads'     : 4			            ,
+    'verbose'     : 2					    ,
+    }
+#-----------------------------------------------------------------------------------------
+
+#%%
+
+#-----------------------------------------------------------------------------------------
+# Basic imports
+#-----------------------------------------------------------------------------------------
+import os, re, argparse, getpass
+from math import inf
+import datetime
+fnow = datetime.datetime.strftime
+dnow = datetime.datetime.now
+now = lambda: fnow(dnow(),"%Y-%m-%d %H:%M:%S")
+
+#-----------------------------------------------------------------------------------------
+# Special Objects
+#-----------------------------------------------------------------------------------------
 class Fake:
     def __len__(self): return len(self.__dict__)
     def __init__(self, **kwargs) -> None:
         for name, attribute in kwargs.items():  setattr(self, name, attribute)
-#%% configurations
-class configs:
-    r""" add your apps here """
-    @staticmethod
-    def default(): #<---- default configuration - do not delete - required to add arguments to argparser
-        return {
-        'base' 		  :	''				        ,
-        'secret'	  :	'__secret__.txt'	    ,
-        'login'       : '__login__.xlsx'	    ,
-        'rename'      : 0					    ,
-        'topic'       : 'tOpIcS'			    ,
-        'emoji'       : '💻'				    ,
-        'welcome'     : 'Welcome!'			    ,
-        'case'        : 0					    ,
-        'ext'         : ''					    ,
-        'required'    : ''					    ,
-        'maxupcount'  : -1					    ,
-        'maxupsize'   : '1GB'					,
-        'maxconnect'  : 100                     ,
-        'port'        : '8080'				    ,
-        'host'        : '0.0.0.0'			    ,
-        'uploads'     : '__uploads__'		    ,
-        'downloads'   : '__downloads__'		    ,
-        'archives'    : '__archives__'		    ,
-        'board'       : '__board__.ipynb'       ,
-        'threads'     : 4			            ,
-        'verbose'     : 2					    ,
-        }
 
-#%% basic imports
-import os, re, platform
-from math import inf
-import datetime
-now = datetime.datetime.now
-HOST_INFO = f'{os.getlogin()}@{platform.node()}' 
-#%% parse arguments
+#-----------------------------------------------------------------------------------------
+# Parse arguments
 # ------------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------
-default_config = configs.default
 default_args = default_config()
-import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument(f'--config', type=str, default='')
 for k, v in default_args.items():parser.add_argument(f'--{k}', type=type(v), default=v)
 args = parser.parse_args()
 del parser
 
-if args.config: # override everything
-    try:
-        c = f'{args.config}'
-        if '.' in c:
-            c_py, c_fun = c.split(".")
-            import importlib
-            c_module = importlib.import_module(c_py)
-            if hasattr(c_module, c_fun): config_func_name = getattr(c_module, c_fun)
-            else: raise NameError
-        else:
-            if hasattr(configs, c): config_func_name = getattr(configs, c)
-            else: raise NameError
-    except: 
-        continue_default_config = input(f'↝ error loading config ({c}) press enter to use default')
-        if f'{continue_default_config}': config_func_name = lambda:{}
-        else: config_func_name = default_config
-    finally: args = Fake(**(config_func_name()))
 
+
+if args.config: # override everything
+    import importlib, json
+    c = f'{args.config}'
+    if '.' not in c: exit(f'[!] config argument should contain a dot(.)')
+    try:
+        c_py, c_fun = c.split(".")
+        c_module = importlib.import_module(c_py)
+        config_dict = getattr(c_module, c_fun)
+        if not isinstance(config_dict, dict): config_dict=config_dict()
+        if not isinstance(config_dict, dict): raise TypeError(f'Expecting a dict object')
+    except: 
+        # try to read as json
+        try: 
+            with open(c, 'r') as f: config_dict = json.loads(f.read())
+        except: 
+            if args.prompt:
+                if input(f'↝ error loading config ({c}) press enter to use default'): config_dict = {}
+                else: config_dict = default_config        
+            else: config_dict = default_config        
+
+    args = Fake(**config_dict)
     if not len(args):exit(f'[!] config not provided')
     for k in default_args: 
         if not hasattr(args, k): exit(f'[!] config is missing attribute ({k})')
+# ******************************************************************************************
+        
+
+#-----------------------------------------------------------------------------------------
+# Create HTML
+# ------------------------------------------------------------------------------------------
 # ******************************************************************************************
 HTML_TEMPLATES = dict(
 board="""""",
@@ -118,7 +146,7 @@ admin = """
     
     <div align="left" style="padding: 20px;">
         <div class="topic_mid">{{ config.topic }}</div>
-        <div class="userword">{{session.uid}} {{ config['emoji'] }} {{session.named}}</div>
+        <div class="userword">{{session.uid}} {{ session.emojid }} {{session.named}}</div>
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
         <a href="{{ url_for('upload') }}" class="btn_download">Back</a>
@@ -199,24 +227,30 @@ login = """
             <input id="passwd" name="passwd" type="password" placeholder="... password ..." class="txt_login"/>
             <br>
             <br>
-            {% if config.rename %}
+            {% if config.rename>0 %}
             <input id="named" name="named" type="text" placeholder="... update-name ..." class="txt_login"/>
-            <br>
+            {% if config.rename>1 %}
+            <input id="emojid" name="emojid" type="text" placeholder={{ config.emoji }} class="txt_login_small"/>
+            {% endif %}
             <br>
             {% endif %}
-            <input type="submit" class="btn_login" value="Login">
+            <br>
+            <input type="submit" class="btn_login" value="Login"> 
             <br>
             <br>
-
         </form>
     </div>
-    <br>
-    <br>
+
     <!-- ---------------------------------------------------------->
     
     <div align="center">
-    <div><span style="font-size: xx-large;">{{ config.emoji }}</span><br><span class="info_login">{{ config.hostinfo }}</span></div>
-    <div style="font-size:large">📤 <a href="https://github.com/NelsonSharma/topics" class="github_info" target="_blank"><i>topics</i> ● GitHub</a> 📥</div>
+    <div>
+    <span style="font-size: xx-large;">{{ config.emoji }}</span>
+    <br>
+    
+    </div>
+    <!-- <a href="https://emojipicker.com/" target="_blank" class="btn_login">...</a> -->
+    <!--<div style="font-size:large"><a href="https://github.com/NelsonSharma/topics"  target="_blank"> 📤 📥 </a></div>-->
     <br>
     </div>
     <!-- ---------------------------------------------------------->
@@ -238,7 +272,7 @@ download = """
     
     <div align="left" style="padding: 20px;">
         <div class="topic_mid">{{ config.topic }}</div>
-        <div class="userword">{{session.uid}} {{ config['emoji'] }} {{session.named}}</div>
+        <div class="userword">{{session.uid}} {{ session.emojid }} {{session.named}}</div>
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
         <a href="{{ url_for('upload') }}" class="btn_download">Back</a>
@@ -280,7 +314,7 @@ archive = """
     
     <div align="left" style="padding: 20px;">
         <div class="topic_mid">{{ config.topic }}</div>
-        <div class="userword">{{session.uid}} {{ config['emoji'] }} {{session.named}}</div>
+        <div class="userword">{{session.uid}} {{ session.emojid }} {{session.named}}</div>
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
         <a href="{{ url_for('upload') }}" class="btn_download">Back</a>
@@ -322,7 +356,7 @@ upload="""
     
     <div align="left" style="padding: 20px;">
         <div class="topic_mid">{{ config.topic }}</div>
-        <div class="userword">{{session.uid}} {{ config['emoji'] }} {{session.named}}</div>
+        <div class="userword">{{session.uid}} {{ session.emojid }} {{session.named}}</div>
         <br>
         <a href="{{ url_for('logout') }}" class="btn_logout">Logout</a>
         {% if "D" in session.admind %}
@@ -430,12 +464,6 @@ style = """
 }
 @keyframes fader_msg {from {color: #ffffff;} to {color: #060472; } }
 
-.info_login{
-    color: #3d3d3d; 
-    font-size: large;
-    font-weight: bold;
-    font-family:monospace;    
-}
 
 .txt_login{
 
@@ -471,6 +499,36 @@ style = """
     font-style: oblique;
     font-family:monospace;   
 }
+
+
+.txt_login_small{
+    box-shadow: inset #abacaf 0 0 0 2px;
+    text-align: center;
+    font-family:monospace;
+    border: 0;
+    background: rgba(0, 0, 0, 0);
+    appearance: none;
+    position: absolute;
+    border-radius: 3px;
+    padding: 9px 12px;
+    margin: 0px 0px 0px 4px;
+    line-height: 1.4;
+    color: rgb(0, 0, 0);
+    font-size: 16px;
+    font-weight: 400;
+    height: 40px;
+    width: 45px;
+    transition: all .2s ease;
+    :hover{
+        box-shadow: 0 0 0 0 #fff inset, #1de9b6 0 0 0 2px;
+    }
+    :focus{
+        background: #fff;
+        outline: 0;
+        box-shadow: 0 0 0 0 #fff inset, #1de9b6 0 0 0 3px;
+    }
+}
+
 
 .btn_login {
     padding: 2px 10px;
@@ -631,7 +689,54 @@ style = """
 @keyframes fader_admin_success {from {color: #22ff00;} to {color: #000000; } }
 """
 )
+# ******************************************************************************************
+
+
 #%%
+
+# ------------------------------------------------------------------------------------------
+# verbose levels
+# dprints for user level logs
+# sprint  for sever level logs
+# ------------------------------------------------------------------------------------------
+if args.verbose==0: # no log
+    def sprint(msg): pass
+    def dprint(msg): pass
+elif args.verbose==1: # only server logs
+    def sprint(msg): print(msg)
+    def dprint(msg): pass 
+elif args.verbose==2: # server and user logs
+    def sprint(msg): print(msg)
+    def dprint(msg): print(f'[{now()}]\t{msg}' )
+else:
+    def sprint(msg): pass
+    def dprint(msg): pass
+# ------------------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------------------
+# Rules
+#-----------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------
+# password policy
+def VALIDATE_PASS(instr):   # a function that can validate the password - returns bool type
+    try: assert (len(instr) < 100) and bool(re.fullmatch("(\w|@|\.)+", instr)) # alpha_numeric @.
+    except AssertionError: return False
+    return True
+#-----------------------------------------------------------------------------------------
+# uid policy
+def VALIDATE_UID(instr):   # a function that can validate the uid - returns bool type
+    try: assert (len(instr) < 100) and bool(re.fullmatch("(\w)+", instr)) # alpha_numeric 
+    except AssertionError: return False
+    return True
+#-----------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------
+# name policy
+def VALIDATE_NAME(instr): return  (len(instr) >0) and (len(instr) < 100) and bool(re.fullmatch("((\w)(\w|\s)*(\w))|(\w)", instr)) # alpha-neumeric but no illegal spaces before or after
+#-----------------------------------------------------------------------------------------
+
+
+
+
 # ------------------------------------------------------------------------------------------
 # html pages
 # ------------------------------------------------------------------------------------------
@@ -647,43 +752,31 @@ try:
 except: exit(f'[!] could not create html at {TEMPLATES_DIR} or {STATIC_DIR}')
 # topics app 
 
-# ------------------------------------------------------------------------------------------
-# verbose levels
-# ------------------------------------------------------------------------------------------
-if args.verbose==0:
-    def dprint(msg): pass
-elif args.verbose==1:
-    def dprint(msg): print(msg)
-elif args.verbose==2:
-    def dprint(msg): print(f'[{now()}]\t{msg}' )
-else:
-    def dprint(msg): pass
-# ------------------------------------------------------------------------------------------
 
 
 #%% [1]
     
 # Read base dir first 
-
 BASEDIR = os.path.abspath((args.base if args.base else os.path.dirname(__file__)))
 try:     os.makedirs(BASEDIR, exist_ok=True)
 except:  exit(f'[!] base directory  @ {BASEDIR} was not found and could not be created') 
-dprint(f'⚙ Base dicectiry:\t{BASEDIR}')
+sprint(f'⚙ Base dicectiry:\t{BASEDIR}')
 # ------------------------------------------------------------------------------------------
 # WEB-SERVER INFORMATION
 # ------------------------------------------------------------------------------------------\
 if not args.secret: exit(f'[!] secret key was not provided!')
 APP_SECRET_KEY_FILE = os.path.join(BASEDIR, args.secret)
 if not os.path.isfile(APP_SECRET_KEY_FILE): #< --- if key dont exist, create it
-    APP_SECRET_KEY = '{}:{}'.format(HOST_INFO, now())
+    import random
+    APP_SECRET_KEY = '{}:{}'.format(random.randint(1111111111, 9999999999), now())
     try:
         with open(APP_SECRET_KEY_FILE, 'w') as f: f.write(APP_SECRET_KEY) #<---- auto-generated key
     except: exit(f'[!] could not create secret key @ {APP_SECRET_KEY_FILE}')
-    dprint(f'⇒ New secret created:\t{APP_SECRET_KEY_FILE}')
+    sprint(f'⇒ New secret created:\t{APP_SECRET_KEY_FILE}')
 else:
     try:
         with open(APP_SECRET_KEY_FILE, 'r') as f: APP_SECRET_KEY = f.read()
-        dprint(f'⇒ Load secret from:\t{APP_SECRET_KEY_FILE}')
+        sprint(f'⇒ Loaded secret file:\t{APP_SECRET_KEY_FILE}')
     except: exit(f'[!] could not read secret key @ {APP_SECRET_KEY_FILE}')
 
 
@@ -698,35 +791,39 @@ from pandas import DataFrame, read_excel, isnull
 if not args.login: exit(f'[!] login file was not provided!')
 LOGIN_XL_PATH = os.path.join( BASEDIR, args.login) 
 if not os.path.isfile(LOGIN_XL_PATH): 
-    #print(f'⇒ Login file {LOGIN_XL_PATH} not found - creating new...')
+    sprint(f'⇒ Creating new login file:\t{LOGIN_XL_PATH}')
+    this_user = getpass.getuser()
+    sprint(f'⇒ Adding user {this_user} to login file:\t{LOGIN_XL_PATH}')
+    if not (VALIDATE_UID(this_user)): 
+        sprint(f'⇒⇒ Could create system user, creating default admin user')
+        this_user='admin'
+    this_pass = getpass.getpass(f'⇒ Enter new password for {this_user}')
     db_dict = { #<---------------- default login file
         'ADMIN': [f'DABU+'], #<---- k # Access Levels   .Admin Archive Download Board Upload 
-        'UID': [f'{os.getlogin()}'],
-        'NAME': [f'{platform.node()}'],
-        'PASS': [''],
+        'UID': [f'{this_user}'],
+        'NAME': [f'{this_user}'],
+        'PASS': [f'{this_pass}'],
         }
     db_frame = DataFrame( db_dict )
     for si in ['ADMIN', 'UID', 'NAME', 'PASS']: db_frame[si] = db_frame[si].astype(object)
-    #print(f'Created New db\n{db_frame}\n')
-    db_frame.to_excel(LOGIN_XL_PATH, sheet_name="login", index=False) # save updated login information to excel sheet
+    db_frame.to_excel(LOGIN_XL_PATH, sheet_name="login", index=False) #print(f'Created New db\n{db_frame}\n') # save updated login information to excel sheet
     del db_dict, db_frame
-    dprint(f'⇒ Created new login file:\t{LOGIN_XL_PATH}')
+    sprint(f'⇒ Created new login file:\t{LOGIN_XL_PATH}')
 # ------------------------------------------------------------------------------------------
 def read_db_from_disk():
     db_frame = read_excel(LOGIN_XL_PATH, dtype=str, engine='openpyxl') #<---- reading an invalid excel file may throw error - to be handled by user
-    for si in ['ADMIN', 'UID', 'NAME', 'PASS']: db_frame[si] = db_frame[si].astype(object)
-    #print(f'Loaded db\n{db_frame}\n')
-    dprint(f'⇒ Loaded login file:\t{LOGIN_XL_PATH}')
+    for si in ['ADMIN', 'UID', 'NAME', 'PASS']: db_frame[si] = db_frame[si].astype(object) #print(f'Loaded db\n{db_frame}\n')
+    sprint(f'⇒ Loaded login file:\t{LOGIN_XL_PATH}')
     return db_frame
 # ------------------------------------------------------------------------------------------
 def write_db_to_disk(db_frame): 
     try:
         db_frame.to_excel(LOGIN_XL_PATH, engine='openpyxl', sheet_name="login", index=False) # save updated login information to excel sheet
         #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< PENDING DB
-        dprint(f'⇒ Persisted login file:\t{LOGIN_XL_PATH}')
+        sprint(f'⇒ Persisted login file:\t{LOGIN_XL_PATH}')
         return True
     except PermissionError:
-        dprint(f'⇒ PermissionError - {LOGIN_XL_PATH} might be open, close it first.')
+        sprint(f'⇒ PermissionError - {LOGIN_XL_PATH} might be open, close it first.')
         return False
     
 # ------------------------------------------------------------------------------------------
@@ -741,15 +838,7 @@ db = read_db_from_disk()  #<----------- Created db here
 # displayed information 
 # ------------------------------------------------------------------------------------------
       
-# ------------------------------------------------------------------------------------------
-# password policy
-# ------------------------------------------------------------------------------------------
-def VALIDATE_PASSWORD(password):   # a function that can validate the password - returns bool type
-    try:
-        assert len(password) >= 1 # MIN_PASSWORD_LEN = 1 
-        assert len(re.findall("[a-zA-Z]|[0-9]|_|@", password)) == len(password)
-        return True
-    except AssertionError: return False
+
 # ------------------------------------------------------------------------------------------
 # download settings
 # ------------------------------------------------------------------------------------------
@@ -757,7 +846,7 @@ if not args.downloads: exit(f'[!] downloads folder was not provided!')
 DOWNLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.downloads) 
 try: os.makedirs(DOWNLOAD_FOLDER_PATH, exist_ok=True)
 except: exit(f'[!] downloads folder @ {DOWNLOAD_FOLDER_PATH} was not found and could not be created')
-dprint(f'⚙ Download Folder:\t{DOWNLOAD_FOLDER_PATH}')
+sprint(f'⚙ Download Folder:\t{DOWNLOAD_FOLDER_PATH}')
 def GET_DOWNLOAD_FILE_LIST (): 
     dlist = []
     d = DOWNLOAD_FOLDER_PATH
@@ -766,7 +855,7 @@ def GET_DOWNLOAD_FILE_LIST ():
         if os.path.isfile(p): dlist.append(f)
     return dlist
 DOWNLOAD_FILE_LIST = GET_DOWNLOAD_FILE_LIST()
-dprint(f'⚙ Download filelist\t{len(DOWNLOAD_FILE_LIST)} item(s)')
+sprint(f'⚙ Download filelist\t{len(DOWNLOAD_FILE_LIST)} item(s)')
 # ------------------------------------------------------------------------------------------
 # archive settings
 # ------------------------------------------------------------------------------------------
@@ -774,7 +863,7 @@ if not args.archives: exit(f'[!] archives folder was not provided!')
 ARCHIVE_FOLDER_PATH = os.path.join( BASEDIR, args.archives) 
 try: os.makedirs(ARCHIVE_FOLDER_PATH, exist_ok=True)
 except: exit(f'[!] archives folder @ {ARCHIVE_FOLDER_PATH} was not found and could not be created')
-dprint(f'⚙ Archive Folder:\t{ARCHIVE_FOLDER_PATH}')
+sprint(f'⚙ Archive Folder:\t{ARCHIVE_FOLDER_PATH}')
 def GET_ARCHIVE_FILE_LIST (): 
     dlist = []
     d = ARCHIVE_FOLDER_PATH
@@ -783,7 +872,7 @@ def GET_ARCHIVE_FILE_LIST ():
         if os.path.isfile(p): dlist.append(f)
     return dlist
 ARCHIVE_FILE_LIST = GET_ARCHIVE_FILE_LIST()
-dprint(f'⚙ Archive filelist\t{len(ARCHIVE_FILE_LIST)} item(s)')
+sprint(f'⚙ Archive filelist\t{len(ARCHIVE_FILE_LIST)} item(s)')
 
 
 # ------------------------------------------------------------------------------------------
@@ -793,7 +882,7 @@ if not args.uploads: exit(f'[!] uploads folder was not provided!')
 UPLOAD_FOLDER_PATH = os.path.join( BASEDIR, args.uploads ) 
 try: os.makedirs(UPLOAD_FOLDER_PATH, exist_ok=True)
 except: exit(f'[!] uploads folder @ {UPLOAD_FOLDER_PATH} was not found and could not be created')
-dprint(f'⚙ Upload Folder:\t{UPLOAD_FOLDER_PATH}')
+sprint(f'⚙ Upload Folder:\t{UPLOAD_FOLDER_PATH}')
 
 
 
@@ -860,7 +949,8 @@ else:
 INITIAL_UPLOAD_STATUS.append((-1, f'max upload size:\t{mus_display}'))
 if not (MAX_UPLOAD_COUNT is inf): INITIAL_UPLOAD_STATUS.append((-1, f'max upload count:\t{MAX_UPLOAD_COUNT}'))
 
-dprint(f'⚙ Upload Settings:\n{INITIAL_UPLOAD_STATUS}')
+sprint(f'⚙ Upload Settings ({len(INITIAL_UPLOAD_STATUS)})')
+for s in INITIAL_UPLOAD_STATUS: sprint(f' ⇒ {s[1]}')
 # ------------------------------------------------------------------------------------------
 # download settings
 from nbconvert import HTMLExporter
@@ -870,9 +960,9 @@ BOARD_FILE_MD = None
 if args.board: 
     BOARD_FILE_MD = os.path.join(BASEDIR, f'{args.board}')
     if  os.path.isfile(BOARD_FILE_MD):
-        dprint(f'⚙ Board File:\t{BOARD_FILE_MD}')
+        sprint(f'⚙ Board File:\t{BOARD_FILE_MD}')
     else: 
-        dprint(f'⚙ Board File:\t{BOARD_FILE_MD} not found')
+        sprint(f'⚙ Board File:\t{BOARD_FILE_MD} not found - Board will noe be available!')
         BOARD_FILE_MD = None
         # try: 
         #     with open(BOARD_FILE_MD, 'w', encoding='utf-8') as f: f.write(f"")
@@ -887,7 +977,7 @@ def update_board():
         try:
             page,_ = HTMLExporter(template_name="classic").from_file(BOARD_FILE_MD, {'metadata':{'name':f'🔰 Board | {args.topic}'}}) 
             #with open(BOARD_FILE_HTML, 'w', encoding='utf-8') as f:f.write(page)
-        except: dprint(f'⚙ Board File could not be updated:\t{BOARD_FILE_MD}')
+        except: sprint(f'⚙ Board File could not be updated:\t{BOARD_FILE_MD}')
         #with open(BOARD_FILE_HTML, 'r') as f: BOARD_PAGE = f.read()
     return page
 BOARD_PAGE=update_board()
@@ -911,10 +1001,9 @@ app.config['downloads'] = DOWNLOAD_FOLDER_PATH
 app.config['archives'] =  ARCHIVE_FOLDER_PATH
 app.config['emoji'] =     args.emoji
 app.config['topic'] =     args.topic
-app.config['hostinfo'] =  HOST_INFO
 app.config['dfl'] =       DOWNLOAD_FILE_LIST
 app.config['afl'] =       ARCHIVE_FILE_LIST
-app.config['rename'] =    bool(args.rename)
+app.config['rename'] =    int(args.rename)
 app.config['muc'] =       MAX_UPLOAD_COUNT
 app.config['board'] =     (BOARD_FILE_MD is not None)
 class UploadFileForm(FlaskForm): # The upload form using FlaskForm
@@ -939,45 +1028,48 @@ def login():
     LOGIN_FAIL_TEXT =       '🔥'              
     LOGIN_CREATE_TEXT =     '🔑'    
     TEMPLATE_LOGIN =    'login.html'
-    global db
+    global db #<--- only when writing to global wariables
     if request.method == 'POST' and 'uid' in request.form and 'passwd' in request.form:
         in_uid = f"{request.form['uid']}"
         in_passwd = f"{request.form['passwd']}"
         in_name = f'{request.form["named"]}' if 'named' in request.form else ''
+        in_emoji = f'{request.form["emojid"]}' if 'emojid' in request.form else app.config['emoji']
+        if ((not in_emoji) or (app.config['rename']<2)): in_emoji = app.config['emoji']
         in_query = in_uid if not args.case else (in_uid.upper() if args.case>0 else in_uid.lower())
-        #print(f"◦ login attempt by [{in_uid}] will case-query [{in_query}]")
-
-        try:                record = db.query("UID==@in_query")
-        except KeyError:    record = None
-        if not len(record): record=None
+        valid_query, valid_name = VALIDATE_UID(in_query) , VALIDATE_NAME(in_name)
+        if not valid_query : record=None
+        else:
+            #print(f"◦ login attempt by [{in_uid}] will case-query [{in_query}]")
+            try:                record = db.query("UID==@in_query")
+            except KeyError:    record = None
+            if not len(record): record = None
         #print(f"◦ record matched? [{record is not None}]")
         if record is not None: 
             passwd = record['PASS'].values[0]
             named = record['NAME'].values[0]
             uid = record['UID'].values[0]
             admind = record['ADMIN'].values[0]
-            
             admind = ('' if isnull(admind) else f'{admind}'.upper())
-        
-            
-            #print(f'{passwd=}, {named=}, {uid=}, {admind=}')
             #print(f"◦ matched record [{uid}|{named}]")
             if isnull(passwd) or passwd=='': # fist login
                 #print(f"◦ first login")
                 if in_passwd: # new password provided
                     #print(f"[---------] new password provided [{in_passwd}]")
-                    if VALIDATE_PASSWORD(in_passwd): # new password is valid
+                    if VALIDATE_PASS(in_passwd): # new password is valid
                         #print(f"[---------] new password is valid")  
                         record['PASS'].values[0]=in_passwd 
-                        if in_name and in_name!=named and app.config['rename'] : 
+                        if in_name!=named and valid_name and (app.config['rename']>0) : 
                             record['NAME'].values[0]=in_name
+                            dprint(f'⇒ {uid} ◦ {named} updated name to "{in_name}"') 
                             named = in_name
+                        else:
+                            if in_name: dprint(f'⇒ {uid} ◦ {named} provided invalid name "{in_name}" (will not update)') 
                         db.update(record) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< PENDING DB
                         #print(f'◦ updated record') # \n{record}
 
                         warn = LOGIN_CREATE_TEXT
-                        msg = f'[{in_uid}.{named}] New password was created successfully'
-                        dprint(f'● {in_uid}.{named} just joined')
+                        msg = f'[{in_uid} {in_emoji} {named}] New password was created successfully'
+                        dprint(f'● {in_uid} {in_emoji} {named} just joined')
            
                     else: # new password is invalid valid
                         #print(f"[........] new password is invalid")  
@@ -1002,27 +1094,32 @@ def login():
                             os.makedirs(folder_name, exist_ok=True)
                             #print(f"..... has directory {folder_name}")
                         except:
-                            dprint(f'◦ directory could not be created @ {folder_name} :: Force logout user {uid}')
+                            dprint(f'✗ directory could not be created @ {folder_name} :: Force logout user {uid}')
                             session['has_login'] = False
                             session['uid'] = uid
                             session['named'] = named
+                            session['emojid'] = ''
                             return redirect(url_for('logout'))
                     
                         session['has_login'] = True
                         session['uid'] = uid
                         session['admind'] = admind
                         session['filed'] = os.listdir(folder_name)
+                        session['emojid'] = in_emoji 
                         
-                        if in_name and in_name!=named and app.config['rename']: 
+                        if in_name!=named and  valid_name and  (app.config['rename']>0): 
                             session['named'] = in_name
                             record['NAME'].values[0]=in_name
+                            dprint(f'⇒ {uid} ◦ {named} updated name to "{in_name}"') 
                             db.update(record) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< PENDING DB
                             named = in_name
                             #print(f'◦ updated record') # \n{record}
-                        else: session['named'] = named
+                        else: 
+                            session['named'] = named
+                            if in_name: dprint(f'⇒ {uid} ◦ {named} provided invalid name "{in_name}" (will not update)')  
 
                         #print(f'◦ login success {uid}|{named}')
-                        dprint(f'● {session["uid"]}.{session["named"]} has logged in') 
+                        dprint(f'● {session["uid"]} {session["emojid"]} {session["named"]} has logged in') 
                         #print(f"filed @ login= {session['filed']}")
                         return redirect(url_for('upload'))
                     else:  
@@ -1036,7 +1133,8 @@ def login():
         else:
             #print(f"◦ unmatched record {in_uid}")
             warn = LOGIN_FAIL_TEXT
-            msg = f'[{in_uid}] Not a valid user'                      
+            msg = f'[{in_uid}] Not a valid user' 
+
     else:
         if session.get('has_login', False):  return redirect(url_for('upload'))
         #print(f"+ page hit")
@@ -1051,11 +1149,12 @@ def logout():
     if not session.get('has_login', False):  return redirect(url_for('login'))
     if not session.get('uid', False): return redirect(url_for('login'))
     #print(f"◦ log out user {session['uid']}")
-    if session['has_login']:  dprint(f'● {session["uid"]}.{session["named"]} has logged out') 
-    else: dprint(f'● {session["uid"]}.{session["named"]} was removed due to invalid uid ({session["uid"]})') 
+    if session['has_login']:  dprint(f'● {session["uid"]} {session["emojid"]} {session["named"]} has logged out') 
+    else: dprint(f'✗ {session["uid"]} ◦ {session["named"]} was removed due to invalid uid ({session["uid"]})') 
     session['has_login'] = False
     session['uid'] = ""
     session['named'] = ""
+    session['emojid'] = ""
     session['admind'] = ''
     session['filed'] = []
     return redirect(url_for('login'))
@@ -1088,10 +1187,10 @@ def archive(req_path):
     abs_path = os.path.join(app.config['archives'], req_path) # Joining the base and the requested path
     #if req_path:print(f"◦ {session['uid']} trying to download {req_path}")
     if not os.path.exists(abs_path): 
-        dprint(f"◦ requested file was not found {abs_path}") #Return 404 if path doesn't exist
+        dprint(f"⇒ requested file was not found {abs_path}") #Return 404 if path doesn't exist
         return abort(404) 
     if os.path.isfile(abs_path):  #print(f"◦ sending file ")
-        dprint(f'● {session["uid"]}.{session["named"]} just downloaded the file {req_path}')
+        dprint(f'● {session["uid"]} ◦ {session["named"]} just downloaded the file {req_path}')
         return send_file(abs_path) # Check if path is a file and serve
     return render_template(TEMPLATE_ARCHIVE)
 # ------------------------------------------------------------------------------------------
@@ -1108,10 +1207,10 @@ def download(req_path):
     abs_path = os.path.join(app.config['downloads'], req_path) # Joining the base and the requested path
     #if req_path:print(f"◦ {session['uid']} trying to download {req_path}")
     if not os.path.exists(abs_path): 
-        dprint(f"◦ requested file was not found {abs_path}") #Return 404 if path doesn't exist
+        dprint(f"⇒ requested file was not found {abs_path}") #Return 404 if path doesn't exist
         return abort(404) # print(f"◦ requested file was not found") #Return 404 if path doesn't exist
     if os.path.isfile(abs_path):  #print(f"◦ sending file ")
-        dprint(f'● {session["uid"]}.{session["named"]} just downloaded the file {req_path}')
+        dprint(f'● {session["uid"]} ◦ {session["named"]} just downloaded the file {req_path}')
         return send_file(abs_path) # Check if path is a file and serve
     return render_template(TEMPLATE_DOWNLOAD)
 # ------------------------------------------------------------------------------------------
@@ -1130,7 +1229,7 @@ def upload():
     #print(f"..... has uploaded {len(file_list)} items")
     
     if form.validate_on_submit() and ('U' in session['admind']):
-        dprint(f"◦ user {session['uid']} is trying to upload {len(form.file.data)} items.")
+        dprint(f"⇒ user {session['uid']} ◦ {session['named']} is trying to upload {len(form.file.data)} items.")
         if app.config['muc']==0: 
             return render_template(TEMPLATE_UPLOAD, form=form, status=[(0, f'✗ Uploads are disabled')])
         else:
@@ -1164,8 +1263,8 @@ def upload():
         #---------------------------------------------------------------------------------
             
             #print(f"◦ upload results: \n{result}")
-            result_show = ''.join([f'{r}\n' for r in result])
-            dprint(f'● {session["uid"]}.{session["named"]} just uploaded {n_success} file(s)\n{result_show}') 
+            result_show = ''.join([f'\t{r[-1]}\n' for r in result])
+            dprint(f'✓ {session["uid"]} ◦ {session["named"]} just uploaded {n_success} file(s)\n{result_show}') 
             return render_template(TEMPLATE_UPLOAD, form=form, status=result)
         
     #file_list = session['filed'] #os.listdir(folder_name)
@@ -1197,7 +1296,7 @@ def purge():
         file_list = os.listdir(folder_name)
         for f in file_list: os.remove(os.path.join(folder_name, f))
         #print(f"◦ {session['uid']} has purged their files.")
-        dprint(f'● {session["uid"]}.{session["named"]} used purge')
+        dprint(f'● {session["uid"]} ◦ {session["named"]} used purge')
         session['filed']=[]
         #dprint(f"filed @ purge= {session['filed']}")
     return redirect(url_for('upload'))
@@ -1233,14 +1332,14 @@ def update_dl():
     r""" refreshes the  downloads"""
     global GET_DOWNLOAD_FILE_LIST
     app.config['dfl'] = GET_DOWNLOAD_FILE_LIST()
-    dprint(f"▶ {session['uid']}.{session['named']} just refreshed the download list.")
+    dprint(f"▶ {session['uid']} ◦ {session['named']} just refreshed the download list.")
     return "Updated download-list", True #  STATUS, SUCCESS
 
 def update_al():
     r""" refreshes the  downloads"""
     global GET_ARCHIVE_FILE_LIST
     app.config['afl'] = GET_ARCHIVE_FILE_LIST()
-    dprint(f"▶ {session['uid']}.{session['named']} just refreshed the archive list.")
+    dprint(f"▶ {session['uid']} ◦ {session['named']} just refreshed the archive list.")
     return "Updated archive-list", True #  STATUS, SUCCESS
 
 
@@ -1248,7 +1347,7 @@ def persist_db():
     r""" writes db to disk """
     global db, write_db_to_disk
     if write_db_to_disk(db):
-        dprint(f"▶ {session['uid']}.{session['named']} just persisted the db to disk.")
+        dprint(f"▶ {session['uid']} ◦ {session['named']} just persisted the db to disk.")
         STATUS, SUCCESS = "Persisted db to disk", True
     else: STATUS, SUCCESS =  f"Write error '{args.login}' might be open", False
     return STATUS, SUCCESS #render_template(TEMPLATE_ADMIN,  status=STATUS, success=SUCCESS)
@@ -1258,14 +1357,14 @@ def reload_db():
     r""" reloads db from disk """
     global db, read_db_from_disk
     db = read_db_from_disk()
-    dprint(f"▶ {session['uid']}.{session['named']} just reloaded the db from disk.")
+    dprint(f"▶ {session['uid']} ◦ {session['named']} just reloaded the db from disk.")
     return "Reloaded db from disk", True #  STATUS, SUCCESS
 
 def refresh_board():
     r""" refreshes the  board"""
     global BOARD_PAGE, update_board
     BOARD_PAGE=update_board()
-    dprint(f"▶ {session['uid']}.{session['named']} just refreshed the board.")
+    dprint(f"▶ {session['uid']} ◦ {session['named']} just refreshed the board.")
     return "Board was refreshed", True
 
 
@@ -1294,8 +1393,8 @@ def repass(req_uid):
                 if '+' not in admind:
                     record['PASS'].values[0]=''
                     db.update(record)
-                    dprint(f"▶ {session['uid']}.{session['named']} just reset the password for {uid}.{named}")
-                    STATUS, SUCCESS =  f"Password was reset for {uid}.{named}", True
+                    dprint(f"▶ {session['uid']} ◦ {session['named']} just reset the password for {uid} ◦ {named}")
+                    STATUS, SUCCESS =  f"Password was reset for {uid} {named}", True
                 else: STATUS, SUCCESS =  f"Cannot reset password for admin account '{in_query}'", False
             else: STATUS, SUCCESS =  f"User '{in_query}' not found - cannot reset password", False
         else: STATUS, SUCCESS =  f"Requires uid - use /x/<uid> to reset password", False
@@ -1307,12 +1406,12 @@ def repass(req_uid):
 #%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 def SERVE(webapp, host, port, url, threads, max_connect, max_body, **kwargs):
-    import datetime
+    #import datetime
     from waitress import serve
     start_time = datetime.datetime.now()
-    print('◉ start server @ {}'.format(start_time))
+    print('◉ start server @ [{}]'.format(start_time))
     endpoint = f'{host}:{port}' if host!='0.0.0.0' else f'localhost:{port}'
-    print(f'▶ {url.lower()}://{endpoint}')
+    print(f'◉ {url.lower()}://{endpoint}')
     serve(webapp, # https://docs.pylonsproject.org/projects/waitress/en/stable/runner.html
         host = host,          
         port = port,          
@@ -1323,8 +1422,8 @@ def SERVE(webapp, host, port, url, threads, max_connect, max_body, **kwargs):
         **kwargs)
     stop_time = datetime.datetime.now()
     run_time = stop_time-start_time
-    print('◉ stop server @ {}'.format(stop_time))
-    print('◉ total up-time was {}'.format(run_time))
+    print('◉ stop server @ [{}]'.format(stop_time))
+    print('◉ total up-time was [{}]'.format(run_time))
     return
 
 #%% @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1340,8 +1439,9 @@ SERVE(
     max_body=   MAX_UPLOAD_SIZE, 
 )
 #%%
+
 while not write_db_to_disk(db):
-    t = input('↝ Persist error ~ Press Enter to try again')
+    t = input('↝ Persist error ~ Press Enter to try again') if args.prompt else " "
     if t: 
         print(f'⇒ could not persist db to {LOGIN_XL_PATH}')
         break
