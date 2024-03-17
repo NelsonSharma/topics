@@ -28,6 +28,10 @@ CMD ["python", "./topics.py"]
 
 
 # docker builder prune
+
 # docker build -f topics-docker-light -t topics-light .
 # docker save -o topics-light.tar topics-light:latest
 # docker load -i topics-light.tar
+
+# docker push qpdbdbqp/topics-light:latest
+# docker pull qpdbdbqp/topics-light:latest
