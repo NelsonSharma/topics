@@ -8,30 +8,41 @@ A light weight app packed in one script - only the `topics.py` file is required 
 
 ## Run using docker
 
+Pull Image and Run
+
+```bash
+docker docker pull qpdbdbqp/topics:latest
+docker run -p 80:8080 qpdbdbqp/topics:latest
+```
+
+or use light image (without board)
+
+```bash
+docker docker pull qpdbdbqp/
+docker run -p 80:8080 qpdbdbqp/topics-light:latest
+```
+
+Build from docker-file
+
 ```bash
 docker build -f topics-docker -t topics .
+docker run -p 80:8080 topics
 ```
 
 Without `Board` support
 
 ```bash
 docker build -f topics-docker-light -t topics-light .
+docker run -p 80:8080 topics-light
 ```
 
 Start the app
 
 * expose port `8080`
-* can mount external folder to `/app/__base__/`
+* can mount external folder to `/app/__default__/`
 * can provide config args through os-env-variables
 * stopped container will retain uploaded files and login-data
-
-Run `http` port `80` on host
-
-```bash
-docker run -p 80:8080 topics
-```
-
-When using docker, the default login is `admin`
+* when using docker, the default login is `admin`
 
 ---
 
