@@ -43,9 +43,23 @@ we must declare global variables only when writing to that variable but not on r
 """
 
 #%%
-#-----------------------------------------------------------------------------------------
-import os
+import os, sys, argparse
+PYDIR = os.path.dirname(__file__)
 OSENV = dict(os.environ)
+parser = argparse.ArgumentParser()
+parser.add_argument('--dir', type=str, default='', help="name of workspace directory relative to __file__")
+WORKDIR = f'{parser.parse_args().dir}'
+if not WORKDIR: WORKDIR = OSENV.get('dir', '')
+if not WORKDIR: WORKDIR="__default__"
+WORKDIR = os.path.join(PYDIR, WORKDIR)
+try: os.makedirs(WORKDIR, exist_ok=True)
+except: exit(f'[!] workdir could was not found and could not be created')
+sys.path.append(WORKDIR) 
+# check if 'configs.py` exsists or not`
+CONFIG = 'current'
+CONFIG_MODULE = 'configs'
+CONFIGS_FILE = f'{CONFIG_MODULE}.py'
+CONFIGS_FILE_PATH = os.path.join(WORKDIR, CONFIGS_FILE)
 def default_config_string(): return f"""
     'base' 		  :	"{OSENV.get('base', '__base__')}",
     'secret'	  :	"{OSENV.get('secret', '__secret__.txt')}",
@@ -71,13 +85,6 @@ def default_config_string(): return f"""
 """
 def generate_default_config():
     return '\ndefault = {\n' + f'{default_config_string()}' + '\n}\n\ncurrent = default'
-#-----------------------------------------------------------------------------------------
-# check if 'configs.py` exsists or not`
-PYDIR = os.path.dirname(__file__)
-CONFIG = 'current'
-CONFIG_MODULE = 'configs'
-CONFIGS_FILE = f'{CONFIG_MODULE}.py'
-CONFIGS_FILE_PATH = os.path.join(PYDIR, CONFIGS_FILE)
 if not os.path.isfile(CONFIGS_FILE_PATH):
     print(f'↪ Creating default config "{CONFIGS_FILE}" from environment...')
     with open(CONFIGS_FILE_PATH, 'w', encoding='utf-8') as f: f.write(generate_default_config())
@@ -107,8 +114,11 @@ class Fake:
 #-----------------------------------------------------------------------------------------
 # Parse arguments
 # ------------------------------------------------------------------------------------------
-try: c_module = importlib.import_module(f'{CONFIG_MODULE}')
-except: exit(f'[!] Could import configs module "{CONFIG_MODULE}"')
+        
+try: 
+    c_module = importlib.import_module(f'{CONFIG_MODULE}')
+    print(f'↪ Imported config-module "{CONFIG_MODULE}" from {c_module.__file__}')
+except: exit(f'[!] Could import configs module "{CONFIG_MODULE}" at "{CONFIGS_FILE_PATH[:-3]}"')
 try:
     print(f'↪ Reading config from {CONFIG_MODULE}.{CONFIG}')
     config_dict = getattr(c_module, CONFIG)
@@ -770,7 +780,7 @@ except: exit(f'[!] could not create html at {TEMPLATES_DIR} or {STATIC_DIR}')
 #%% [1]
     
 # Read base dir first 
-BASEDIR = os.path.abspath((args.base if args.base else os.path.dirname(__file__)))
+BASEDIR = os.path.abspath(((os.path.join(WORKDIR, args.base)) if args.base else WORKDIR))
 try:     os.makedirs(BASEDIR, exist_ok=True)
 except:  exit(f'[!] base directory  @ {BASEDIR} was not found and could not be created') 
 sprint(f'⚙ Base dicectiry:\t{BASEDIR}')

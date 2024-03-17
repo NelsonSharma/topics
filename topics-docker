@@ -29,9 +29,8 @@ CMD ["python", "./topics.py"]
 
 # docker builder prune
 
-# docker build -f topics-docker -t topics .
-# docker save -o topics.tar topics:latest
-# docker load -i topics.tar
-
+# docker build -f topics-docker -t qpdbdbqp/topics:latest .
 # docker push qpdbdbqp/topics:latest
 # docker pull qpdbdbqp/topics:latest
+# docker save -o topics.tar qpdbdbqp/topics:latest
+# docker load -i topics.tar
