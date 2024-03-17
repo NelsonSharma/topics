@@ -1049,7 +1049,8 @@ class UploadFileForm(FlaskForm): # The upload form using FlaskForm
 @app.route('/', methods =['GET', 'POST'])
 def login():
     LOGIN_NEED_TEXT =       '🔒'
-    LOGIN_FAIL_TEXT =       '❌'              
+    LOGIN_FAIL_TEXT =       '❌'     
+    LOGIN_NEW_TEXT =        '🔥'
     LOGIN_CREATE_TEXT =     '🔑'    
     #NAME, PASS = 2, 3
     global db#, HAS_PENDING#<--- only when writing to global wariables
@@ -1091,13 +1092,13 @@ def login():
            
                     else: # new password is invalid valid
                         #print(f"[........] new password is invalid")  
-                        warn = LOGIN_FAIL_TEXT
+                        warn = LOGIN_NEW_TEXT
                         msg=f'[{in_uid}] New password is invalid - can use alpha-numeric, underscore and @-symbol'
                         
                                                
                 else: #new password not provided       
                     #print(f"[.....] new password was not provided")             
-                    warn = LOGIN_FAIL_TEXT
+                    warn = LOGIN_NEW_TEXT
                     msg = f'[{in_uid}] New password required - can use alpha-numeric, underscore and @-symbol'
                                            
             else: # re login

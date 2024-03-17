@@ -29,3 +29,5 @@ CMD ["python", "./topics.py"]
 
 # docker builder prune
 # docker build -f topics-docker -t topics .
+# docker save -o topics.tar topics:latest
+# docker load -i topics.tar
