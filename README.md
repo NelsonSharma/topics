@@ -2,251 +2,69 @@
 
 Flask-based web app for sharing files
 
+A light weight app packed in one script - only the `topics.py` file is required to run the app
+
 ---
 
-## setup *topics* to run on your machine
-
-Only the `topics.py` file is required to run the app. Optionally, the `requirements.txt` file provides the required packages.
-
-### ✔ clone repo or download script
+## Run using docker
 
 ```bash
-git clone https://github.com/NelsonSharma/topics.git
+docker build -f topics-docker -t topics .
 ```
 
-(or just download `topics.py`) and cd into the directory
+Without `Board` support
 
 ```bash
-cd topics
+docker build -f topics-docker-light -t topics-light .
 ```
 
-### ✔ (optional) create a virtual environment
+Start the app
+
+* expose port `8080`
+* can mount external folder to `/app/__base__/`
+* can provide config args through os-env-variables
+* stopped container will retain uploaded files and login-data
+
+Run `http` port `80` on host
 
 ```bash
-python -m venv .venv
+docker run -p 80:8080 topics
 ```
+
+When using docker, the default login is `admin`
+
+---
+
+## Run without docker
+
+Preferred Python version is `3.11.8`
 
 ```bash
-source .venv/bin/activate
+python -m pip install Flask==3.0.2 Flask-WTF==1.2.1 waitress==3.0.0
 ```
 
-### ✔ install required packages
+Enable `Board` support by installing `nbconvert`
 
 ```bash
-python -m pip install pandas openpyxl Flask Flask-WTF waitress nbconvert IPython
+python -m pip install nbconvert==7.16.2
 ```
 
-or use the provided `requirements.txt` file
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-### ✔ start the app
-
-start the app server by launching `topics.py`
+Start the app server by launching `topics.py`
 
 ```bash
 python topics.py 
 ```
 
-use `ctrl+c` to stop the server
-
-### ✔ (optional) start with extra arguments
-
-using in-built `configs` class
-
-```bash
-python topics.py --config=default
-```
-
-using arguments
-
-```bash
-python topics.py --base="./__my base__" --secret="my secret.txt" --login="my login.xlsx" --rename=1 --topic="my topic" --emoji="🧡" --welcome="my greetings"  --case=0 --ext="txt,jpeg,jpeg,mp4,zip" --required="" --maxupcount=10 --maxupsize=256 --port=8080 --host=127.0.0.1 --uploads="my uploads" --downloads="my downloads" --threads=1 --verbose=3
-```
-
-Description of Arguments
-
-```python
-
---config
-# the name of function in 'configs' class that returns a configuration dict
-# when specified, it will ignore all other arguments
-# instead, all arguments will be built from the configuration dict that is returned
-# default is empty-string which means not using config - use args instead
-# 'configs' are just functions that take no args and return a configuration dict
-# NOTE: custom configs can be created by copying the 'default' config function in the 'configs' class 
-# ... when creating a custom config named 'my_config' for e.g.
-# ... the config arg should be provided as python topics.py --config=my_config
-# NOTE: if config is provided with the dot (.) character like --config=xyz.my_config
-# ... then the function 'my_config' will be called from local module 'xyz' (possibly defined in 'xyz.py')
-# ... this is useful in storing custom configs seperate from application  
-
---base
-# the base directory at the server
-# it contains '__uploads__', '__downloads__', __login__.xlsx', '__secret__.txt'
-# default is empty-string which means the same directory as the os.path.abspath(__file__)
-
---secret
-# the file containing app secret key
-# will be auto-generated if not found - will use in subsequent runs
-# default is "__secret__.txt"
-
---login         
-# name of login database file - an Excel file
-# default is "__login__.xlsx" (will auto-create if not found)
-
---rename
-# if true (1), displays the "update-name" field on login page
-# users can update their name using this field
-# default is false (0)
-
---topic         
-# name of the topic - this is displayed as the main heading at the top of all pages
-# default is "tOpIcS"
-
---emoji
-# an emoji to display in between user-id and name 
-# default is "💻" (can be blank as well)
-
---welcome
-# a welcome message to be displayed when a user lands on the login page
-# default is "Welcome!"
-
---case          
-# convert uid to upper or lower case 
-# [-1] means lower-case, [1] means upper-case, [0] means no convert
-# default is [0] which means no convert
-
---ext           
-# allowed file extensions that can be uploaded (expects a CSV-string)
-# default is empty-string which means any file is allowed
-
---required
-# allowed file names that can be uploaded (expects a CSV-string)
-# these are specific filenames and will override the "--ext" argument
-# default is empty-string which means no-requirement
-
---maxupcount    
-# max no. of files that a user can upload
-# set to [0] to disable uploads
-# default is [-1] which means no-limit
-
---maxupsize     
-# max file-size (can be in KB, MB, GB or TB) that can be uploaded 
-# (actually represent the `max_request_body_size` argument in `waitress.serve`)
-# default is '1GB' which means 2**30 Bytes
-
---port          
-# port of server ip-endpoint 
-# default is '8080'
-
---host          
-# address of server ip-endpoint 
-# default is '0.0.0.0' which means use all interfaces
-
---uploads       
-# name of folder used to store uploaded files
-# default is "__uploads__"
-
---downloads     
-# name of the folder used to serve files as resources
-# default is "__downloads__"
-
---board
-# an ipynb file (jupyter notebook) that is embedded in html (uses nbconvert)
-# default file will not be created if not found
-# admins must refresh boards if changes are made
-
---threads       
-# no of threads to be used by waitress.serve
-# to be absolutely thread-safe, use a single thread
-# default is 4 threads
-
---verbose       
-# verbose level 
-# (0=silent) (1=events) (2=events+time)
-# default is [2]
-
-```
-
-Note: the `--case` argument is to convert the uid entered by users to either upper-case or lower-case.
-
-For example, if uids are case insensitive but are stored in upper-case in the login database,
-then specifying `--case=1` will allow the uid entered by the user to be converted to upper-case before
-querying to the login database. This way users don't necessarily have to capitalize their uid at the time of login.
-Otherwise, the login might fail since uids are case sensitive i.e., `--case=0` by default.
+When not using docker, the default login is your os-username as returned by `getpass.getuser()` call
 
 ---
 
-## where are the files?
+## Configs
 
-* files placed in the default `__downloads__` folder will be available for download (only top-level files)
-* files uploaded by external users will be stored in default `__uploads__/<uid>` folder
-  * NOTE: since each user has its own directory with the same name as the uid of the user it is important to avoid illegal characters like backslash or slash in uids
-  * if folder names do not support these characters, then the user's directory will not be created and they will always be auto-logged out
-
----
-
-## note on login databse
-
-Login databse is an excel file (`__login__.xlsx` by default).
-
-At server start-up, login file is read once and stored into an in-memory dataframe called login-db ( the `db` variable in `topics.py`)
-
-Login file contains a "login" sheet that has 4 columns -> [ `ADMIN`  `UID`  `NAME`  `PASS` ]
-
-* `UID` and `NAME`
-  * the `UID` field is the unique-id used to login
-  * only those uids that are populated in the `UID` field of the login file will be allowed to login and use the app
-  * one should pre-fill the `UID` field with known users
-  * the `NAME` field represents full name - should be pre-filed along with `UID`
-
-* `PASS`
-  * the `PASS` field contains user's password
-  * its initially kept blank - keeping it blank allows for the user to set password when the login for the first time
-  * to set new password, enter uid and the new password on the login page and click on `Login`
-  * if the new password is valid, it will be created and a message will be displayed to user confirming the same
-
-* `ADMIN`
-  * the `ADMIN` field indicates if the user is an admin or not
-  * keeping it blank would mean that the user is not an admin
-  * an admin can refresh downloads-list, persist and reload login-db using `<ip>:<port>/<cmd>` url
-  * a default admin user will be auto-created on the first run if the specified login file is absent
-
----
-
-## how to admin?
-
-* Adding/Removing/Updating Users
-  * default login file `__login__.xlsx` will be created if not present or not specified otherwise
-  * users can be added or removed directly in `__login__.xlsx`
-  * however, doing so will not be reflected in the app immediately if its running already
-  * this requires the in-memory login-db (which is a dataframe) to be reloaded from `__login__.xlsx`
-  * an admin user can do so by going to the `<ip>:<port>/dbr` url (dbr for db-read)
-  * this is to avoid restarting the server to update the login-db
-
-* Persisting login-database to disk manually
-  * users that login first time will create new passwords
-  * these passwords are again, stored in the in-memory login-db (which is a dataframe)
-  * the changes will be persisted to disk when the server is stopped (using ctrl+c)
-  * however, if the server crashes before that, then the new passwords will be lost
-  * the in-memory login-db must be written back to `__login__.xlsx`
-  * an admin user can do so by going to the `<ip>:<port>/dbw` url (dbw for db-write)
-  * this is to avoid restarting the server to persist changes to disk
-
-* Refreshing/Updating downloads-list
-  * files can be placed inside the `__downloads__` folder to be shared
-  * when the server is started, it prepares and stores a list of files available in the `__downloads__` folder
-  * however, if new files are added to `__downloads__` folder, they will not reflect if the server is running already
-  * it will be required to re-scan the `__downloads__` folder and rebuild the downloads-list
-  * an admin user can do so by going to the `<ip>:<port>/ref` url
-  * this is to avoid restarting the server to update the downloads-list
-
----
-
-> *topics*
-> author: `mail.nelsonsharma@gmail.com`
+* can use `configs.py` to define custom configs
+* `configs.py` file will be auto-created with `default` dict in it
+* the dict named `current` will be choosen as the config from `configs.py`
+* initially, `current = default`
+* `current` should be defined at the end of the file
 
 ---
