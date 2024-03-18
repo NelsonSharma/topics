@@ -6,13 +6,13 @@ A light weight Flask-based web app for sharing files
 
 ### Run using docker
 
-* Pull Image
+* Pull [image](https://hub.docker.com/repository/docker/qpdbdbqp/topics) 
 
 ```bash
 docker pull qpdbdbqp/topics:latest
 ```
 
-* a light image (without board) is also available
+* a light [image](https://hub.docker.com/repository/docker/qpdbdbqp/topics-light) (without board) is also available
 
 ```bash
 docker pull qpdbdbqp/topics-light:latest
