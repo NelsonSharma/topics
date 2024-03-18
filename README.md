@@ -73,7 +73,7 @@ Preferred Python version is `3.11.8`
 * Clone the repo 
 
 ```bash
-gitclone https://github.com/NelsonSharma/topics.git
+git clone https://github.com/NelsonSharma/topics.git
 ```
 
 * `cd` into the repo
@@ -114,7 +114,7 @@ python -m topics --dir="__data__"
 python -m pip install Flask==3.0.2 Flask-WTF==1.2.1 waitress==3.0.0 nbconvert==7.16.2
 ```
 
-... or use the light image (without board)
+... or use the light-version (without board)
 
 ```bash
 python -m pip install Flask==3.0.2 Flask-WTF==1.2.1 waitress==3.0.0
