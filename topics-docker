@@ -15,7 +15,7 @@ ENV PYTHONUNBUFFERED=1
 RUN python -m pip install Flask==3.0.2 Flask-WTF==1.2.1 waitress==3.0.0 nbconvert==7.16.2
 
 WORKDIR /app
-COPY topics.py /app/
+COPY topics/* /app/topics
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
@@ -24,7 +24,7 @@ USER admin
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 #CMD ["gunicorn", "--bind", "0.0.0.0:8080", "topics:app"]
-CMD ["python", "./topics.py"]
+CMD ["python", "-m", "topics"]
 
 
 # docker builder prune
